@@ -58,7 +58,14 @@ namespace OfCourseIStillLoveYou
             {
                 if (camera != null)
                 {
-                    DeferredWrapper.ToggleCameraDebugMode(camera, debugModeEnabled);
+                    if (!debugModeEnabled)
+                    {
+                        DeferredWrapper.ForceRemoveDebugMode(camera);
+                    }
+                    else
+                    {
+                        DeferredWrapper.ToggleCameraDebugMode(camera, debugModeEnabled);
+                    }
                 }
             }
 
@@ -452,6 +459,7 @@ namespace OfCourseIStillLoveYou
             {
                 if (camera != null)
                 {
+                    DeferredWrapper.ForceRemoveDebugMode(camera);
                     DeferredWrapper.DisableDeferredRendering(camera);
                     camera.enabled = false;
                 }

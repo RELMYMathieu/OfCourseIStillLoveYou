@@ -116,6 +116,10 @@ namespace OfCourseIStillLoveYou
                     _forwardCompatibilityInitMethod.Invoke(component, new object[] { 15 });
                     Debug.Log($"[OfCourseIStillLoveYou]: Added ForwardRenderingCompatibility to {camera.name}");
                 }
+                else
+                {
+                    Debug.Log($"[OfCourseIStillLoveYou]: Using fallback AddOrGetComponent");
+                }
             }
             catch (Exception ex)
             {
@@ -201,6 +205,33 @@ namespace OfCourseIStillLoveYou
             {
                 Debug.LogWarning($"[OfCourseIStillLoveYou]: Could not toggle debug mode on {camera.name}: {ex.Message}");
             }
+        }
+        public static void ForceRemoveDebugMode(Camera camera)
+        {
+            if (camera == null || _gBufferDebugType == null)
+                return;
+
+            try
+            {
+                var debugComponents = camera.GetComponents(_gBufferDebugType);
+                foreach (var component in debugComponents)
+                {
+                    if (component != null)
+                    {
+                        UnityEngine.Object.Destroy(component);
+                        Debug.Log($"[OfCourseIStillLoveYou]: Force removed GBufferDebug from {camera.name}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[OfCourseIStillLoveYou]: Error force removing debug mode: {ex.Message}");
+            }
+        }
+
+        public static Type GetGBufferDebugType()
+        {
+            return _gBufferDebugType;
         }
 
         public static void SyncDebugMode(Camera camera)

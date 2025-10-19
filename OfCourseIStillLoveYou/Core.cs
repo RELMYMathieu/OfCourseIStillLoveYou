@@ -10,15 +10,14 @@ namespace OfCourseIStillLoveYou
     [KSPAddon(KSPAddon.Startup.Flight, false)]
     public class Core : MonoBehaviour
     {
-        public static  Dictionary<int, TrackingCamera> TrackedCameras = new Dictionary<int, TrackingCamera>();
+        public static Dictionary<int, TrackingCamera> TrackedCameras = new Dictionary<int, TrackingCamera>();
 
         private static bool _lastDebugModeState = false;
 
         private void Awake()
         {
-            GrpcClient.ConnectToServer(Settings.EndPoint,Settings.Port);
+            GrpcClient.ConnectToServer(Settings.EndPoint, Settings.Port);
         }
-
 
         public static void Log(string message)
         {
@@ -30,7 +29,6 @@ namespace OfCourseIStillLoveYou
             List<MuMechModuleHullCamera> result = new List<MuMechModuleHullCamera>();
 
             if (!FlightGlobals.ready) return result;
-
 
             foreach (var vessel in FlightGlobals.VesselsLoaded)
             {
@@ -76,10 +74,9 @@ namespace OfCourseIStillLoveYou
             foreach (var trackedCamerasValue in TrackedCameras.Values.Where(trackedCamerasValue => trackedCamerasValue.Enabled))
             {
                 if (!trackedCamerasValue.OddFrames) continue;
-               
+
                 trackedCamerasValue.CalculateSpeedAltitude();
                 trackedCamerasValue.SendCameraImage();
-               
             }
         }
 
