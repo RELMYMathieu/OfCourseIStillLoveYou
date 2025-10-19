@@ -10,6 +10,7 @@ namespace OfCourseIStillLoveYou
     {
         private static bool? _isDeferredAvailable;
         private static Type _forwardRenderingCompatibilityType;
+        private static Type _gBufferDebugType;
         private static MethodInfo _forwardCompatibilityInitMethod;
 
         public static bool IsDeferredAvailable
@@ -32,6 +33,7 @@ namespace OfCourseIStillLoveYou
                     }
 
                     _forwardRenderingCompatibilityType = deferredAssembly.GetType("Deferred.ForwardRenderingCompatibility");
+                    _gBufferDebugType = deferredAssembly.GetType("Deferred.GBufferDebug");
 
                     if (_forwardRenderingCompatibilityType == null)
                     {
@@ -145,6 +147,69 @@ namespace OfCourseIStillLoveYou
             {
                 Debug.LogError($"[OfCourseIStillLoveYou]: Error disabling deferred rendering: {ex.Message}");
             }
+        }
+
+        public static bool IsDebugModeEnabled()
+        {
+            if (!IsDeferredAvailable || _gBufferDebugType == null)
+                return false;
+
+            try
+            {
+                var allCameras = Camera.allCameras;
+                foreach (var cam in allCameras)
+                {
+                    if (cam.GetComponent(_gBufferDebugType) != null)
+                        return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[OfCourseIStillLoveYou]: Error checking debug mode: {ex.Message}");
+            }
+
+            return false;
+        }
+
+        public static void ToggleCameraDebugMode(Camera camera, bool enable)
+        {
+            if (!IsDeferredAvailable || camera == null)
+                return;
+
+            if (_gBufferDebugType == null)
+            {
+                Debug.LogWarning("[OfCourseIStillLoveYou]: GBufferDebug type not found - debug mode not available");
+                return;
+            }
+
+            try
+            {
+                var debugScript = camera.GetComponent(_gBufferDebugType);
+
+                if (enable && debugScript == null)
+                {
+                    camera.gameObject.AddComponent(_gBufferDebugType);
+                    Debug.Log($"[OfCourseIStillLoveYou]: Added GBufferDebug to {camera.name}");
+                }
+                else if (!enable && debugScript != null)
+                {
+                    UnityEngine.Object.Destroy(debugScript);
+                    Debug.Log($"[OfCourseIStillLoveYou]: Removed GBufferDebug from {camera.name}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[OfCourseIStillLoveYou]: Could not toggle debug mode on {camera.name}: {ex.Message}");
+            }
+        }
+
+        public static void SyncDebugMode(Camera camera)
+        {
+            if (!IsDeferredAvailable || camera == null)
+                return;
+
+            bool globalDebugEnabled = IsDebugModeEnabled();
+            ToggleCameraDebugMode(camera, globalDebugEnabled);
         }
     }
 }

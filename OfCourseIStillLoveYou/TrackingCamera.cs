@@ -50,6 +50,8 @@ namespace OfCourseIStillLoveYou
         public bool OddFrames;
         private byte[] _jpgTexture;
 
+        private bool _lastDebugModeState = false;
+
         public void ToogleCameras()
         {
             OddFrames = !OddFrames;
@@ -166,7 +168,7 @@ namespace OfCourseIStillLoveYou
         {
             var cam1Obj = new GameObject();
             var partNearCamera = cam1Obj.AddComponent<Camera>();
-          
+
             partNearCamera.CopyFrom(Camera.allCameras.FirstOrDefault(cam => cam.name == "Camera 00"));
             partNearCamera.name = "jrNear";
             partNearCamera.transform.parent = _hullcamera.cameraTransformName.Length <= 0
@@ -186,6 +188,7 @@ namespace OfCourseIStillLoveYou
 
             //Deferred rendering
             DeferredWrapper.EnableDeferredRendering(partNearCamera);
+            DeferredWrapper.SyncDebugMode(partNearCamera);
 
             //TUFX
             AddTufxPostProcessing();
@@ -196,7 +199,6 @@ namespace OfCourseIStillLoveYou
 
             partScaledCamera.CopyFrom(mainSkyCam);
             partScaledCamera.name = "jrScaled";
-
 
             partScaledCamera.transform.parent = mainSkyCam.transform;
             partScaledCamera.transform.localRotation = Quaternion.identity;
@@ -210,6 +212,7 @@ namespace OfCourseIStillLoveYou
             _cameras[1] = partScaledCamera;
 
             DeferredWrapper.EnableDeferredRendering(partScaledCamera);
+            DeferredWrapper.SyncDebugMode(partScaledCamera);
 
             var camRotator = cam2Obj.AddComponent<TgpCamRotator>();
             camRotator.NearCamera = partNearCamera;
@@ -234,6 +237,7 @@ namespace OfCourseIStillLoveYou
             _cameras[2] = galaxyCam;
 
             DeferredWrapper.EnableDeferredRendering(galaxyCam);
+            DeferredWrapper.SyncDebugMode(galaxyCam);
 
             var camRotatorgalaxy = galaxyCamObj.AddComponent<TgpCamRotator>();
             camRotatorgalaxy.NearCamera = partNearCamera;
@@ -241,6 +245,8 @@ namespace OfCourseIStillLoveYou
 
             foreach (var t in _cameras)
                 t.enabled = false;
+
+            _lastDebugModeState = DeferredWrapper.IsDebugModeEnabled();
         }
 
         private void AddTufxPostProcessing()
