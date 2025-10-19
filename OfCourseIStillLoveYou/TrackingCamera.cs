@@ -55,7 +55,10 @@ namespace OfCourseIStillLoveYou
             OddFrames = !OddFrames;
             foreach (var camera in this._cameras)
             {
-                camera.enabled = OddFrames;
+                if (camera != null)
+                {
+                    camera.enabled = OddFrames;
+                }
             }
         }
 
@@ -181,10 +184,13 @@ namespace OfCourseIStillLoveYou
             _cameras[0].allowHDR = true;
             cam1Obj.AddComponent<CanvasHack>();
 
+            //Deferred rendering
+            DeferredWrapper.EnableDeferredRendering(partNearCamera);
+
             //TUFX
             AddTufxPostProcessing();
 
-             var cam2Obj = new GameObject();
+            var cam2Obj = new GameObject();
             var partScaledCamera = cam2Obj.AddComponent<Camera>();
             var mainSkyCam = FindCamera("Camera ScaledSpace");
 
@@ -203,6 +209,7 @@ namespace OfCourseIStillLoveYou
             partScaledCamera.enabled = true;
             _cameras[1] = partScaledCamera;
 
+            DeferredWrapper.EnableDeferredRendering(partScaledCamera);
 
             var camRotator = cam2Obj.AddComponent<TgpCamRotator>();
             camRotator.NearCamera = partNearCamera;
@@ -225,6 +232,8 @@ namespace OfCourseIStillLoveYou
             galaxyCam.allowMSAA = true;
             galaxyCam.enabled = true;
             _cameras[2] = galaxyCam;
+
+            DeferredWrapper.EnableDeferredRendering(galaxyCam);
 
             var camRotatorgalaxy = galaxyCamObj.AddComponent<TgpCamRotator>();
             camRotatorgalaxy.NearCamera = partNearCamera;
@@ -421,8 +430,13 @@ namespace OfCourseIStillLoveYou
             this.TargetCamRenderTexture.Release();
 
             foreach (var camera in _cameras)
+            {
                 if (camera != null)
+                {
+                    DeferredWrapper.DisableDeferredRendering(camera);
                     camera.enabled = false;
+                }
+            }
         }
     }
 }
