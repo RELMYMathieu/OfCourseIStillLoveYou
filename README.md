@@ -5,9 +5,11 @@
           <a href="../../releases"><img src="https://img.shields.io/github/release/jrodrigv/OfCourseIStillLoveYou.svg?style=flat&logo=github&logoColor=white" alt="Latest release" /></a>
 </p>
 
-# OfCourseIStillLoveYou
+# JustReadTheInstructions
 
 KSP mod to display hullcam cameras views on different GUI inside or outside the game using a Desktop app and Server app.
+
+Fork of the mod OfCourseIStillLoveYou by jrodrigrv.
 
 ## Requirements:
 * KSP 1.12.5
