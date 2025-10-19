@@ -52,6 +52,19 @@ namespace OfCourseIStillLoveYou
 
         private bool _lastDebugModeState = false;
 
+        public void SyncDebugMode(bool debugModeEnabled)
+        {
+            foreach (var camera in _cameras)
+            {
+                if (camera != null)
+                {
+                    DeferredWrapper.ToggleCameraDebugMode(camera, debugModeEnabled);
+                }
+            }
+
+            _lastDebugModeState = debugModeEnabled;
+        }
+
         public void ToogleCameras()
         {
             OddFrames = !OddFrames;

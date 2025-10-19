@@ -12,6 +12,8 @@ namespace OfCourseIStillLoveYou
     {
         public static  Dictionary<int, TrackingCamera> TrackedCameras = new Dictionary<int, TrackingCamera>();
 
+        private static bool _lastDebugModeState = false;
+
         private void Awake()
         {
             GrpcClient.ConnectToServer(Settings.EndPoint,Settings.Port);
@@ -46,8 +48,28 @@ namespace OfCourseIStillLoveYou
         void LateUpdate()
         {
             Refresh();
+            SyncDebugMode();
         }
 
+        private static void SyncDebugMode()
+        {
+            bool currentDebugMode = DeferredWrapper.IsDebugModeEnabled();
+
+            if (currentDebugMode != _lastDebugModeState)
+            {
+                Log($"Debug mode changed to {currentDebugMode}, syncing all cameras");
+
+                foreach (var trackedCamera in TrackedCameras.Values)
+                {
+                    if (trackedCamera.Enabled)
+                    {
+                        trackedCamera.SyncDebugMode(currentDebugMode);
+                    }
+                }
+
+                _lastDebugModeState = currentDebugMode;
+            }
+        }
 
         private void Refresh()
         {
