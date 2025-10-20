@@ -216,7 +216,7 @@ namespace OfCourseIStillLoveYou
             //TUFX
             AddTufxPostProcessing();
 
-            // === NEW: Parallax Integration ===
+            //Parallax for near camera
             ParallaxWrapper.ApplyParallaxToCamera(partNearCamera, mainCamera);
             Debug.Log("[OCISLY] Parallax diagnostic for Near Camera:\n" +
                       ParallaxWrapper.GetDiagnosticInfo(partNearCamera));
@@ -300,6 +300,14 @@ namespace OfCourseIStillLoveYou
                     }
                 }
             }
+
+            //EVE for near camera
+            EVEWrapper.ApplyEVEToCamera(partNearCamera, mainCamera);
+            EVEWrapper.ApplyEVEToCamera(partScaledCamera, mainSkyCam);
+            EVEWrapper.ApplyEVEToCamera(galaxyCam, mainGalaxyCam);
+
+            Debug.Log("[OCISLY] EVE diagnostic for Near Camera:\n" +
+                      EVEWrapper.GetDiagnosticInfo(partNearCamera));
         }
 
         private void AddTufxPostProcessing()
@@ -495,8 +503,8 @@ namespace OfCourseIStillLoveYou
                     DeferredWrapper.ForceRemoveDebugMode(camera);
                     DeferredWrapper.DisableDeferredRendering(camera);
 
-                    // === NEW: Remove Parallax ===
                     ParallaxWrapper.RemoveParallaxFromCamera(camera);
+                    EVEWrapper.RemoveEVEFromCamera(camera);
 
                     camera.enabled = false;
                 }
