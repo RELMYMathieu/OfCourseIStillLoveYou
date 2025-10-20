@@ -281,6 +281,25 @@ namespace OfCourseIStillLoveYou
                 t.enabled = false;
 
             _lastDebugModeState = DeferredWrapper.IsDebugModeEnabled();
+            // I'm attempting to figure out how to get compat to work with Parallax terrain/ocean effects... Hmm...
+            Debug.Log("[OCISLY] === Main Camera Components ===");
+            foreach (var component in mainCamera.GetComponents<Component>())
+            {
+                Debug.Log($"[OCISLY] - {component.GetType().FullName}");
+            }
+
+            Debug.Log("[OCISLY] === Main Camera CommandBuffers ===");
+            foreach (CameraEvent evt in System.Enum.GetValues(typeof(CameraEvent)))
+            {
+                var buffers = mainCamera.GetCommandBuffers(evt);
+                if (buffers.Length > 0)
+                {
+                    foreach (var buffer in buffers)
+                    {
+                        Debug.Log($"[OCISLY] - {evt}: {buffer.name}");
+                    }
+                }
+            }
         }
 
         private void AddTufxPostProcessing()
