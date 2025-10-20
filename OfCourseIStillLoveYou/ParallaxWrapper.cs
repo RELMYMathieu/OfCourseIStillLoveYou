@@ -30,7 +30,7 @@ namespace OfCourseIStillLoveYou
                 try
                 {
                     _parallaxAssembly = AssemblyLoader.loadedAssemblies
-                        .FirstOrDefault(a => a.name == "ParallaxContinued")?.assembly;
+                        .FirstOrDefault(a => a.name == "Parallax")?.assembly;
 
                     if (_parallaxAssembly == null)
                     {
