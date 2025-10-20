@@ -78,6 +78,48 @@ namespace OfCourseIStillLoveYou
             }
         }
 
+        public static void ForceEnableScattererComponents(Camera camera)
+        {
+            if (!IsScattererAvailable || camera == null)
+                return;
+
+            try
+            {
+                var scatteringBufferType = _scattererAssembly?.GetType("Scatterer.ScatteringCommandBuffer");
+                var oceanBufferType = _scattererAssembly?.GetType("Scatterer.OceanCommandBuffer");
+
+                if (scatteringBufferType != null)
+                {
+                    var component = camera.GetComponent(scatteringBufferType);
+                    if (component != null)
+                    {
+                        var enableMethod = scatteringBufferType.GetMethod("EnableForThisFrame", BindingFlags.Public | BindingFlags.Instance);
+                        if (enableMethod != null)
+                        {
+                            enableMethod.Invoke(component, null);
+                        }
+                    }
+                }
+
+                if (oceanBufferType != null)
+                {
+                    var component = camera.GetComponent(oceanBufferType);
+                    if (component != null)
+                    {
+                        var enableMethod = oceanBufferType.GetMethod("EnableForThisFrame", BindingFlags.Public | BindingFlags.Instance);
+                        if (enableMethod != null)
+                        {
+                            enableMethod.Invoke(component, null);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[OfCourseIStillLoveYou]: Error forcing Scatterer components: {ex.Message}");
+            }
+        }
+
         public static void RemoveScattererFromCamera(Camera camera)
         {
             if (!IsScattererAvailable || camera == null)

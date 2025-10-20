@@ -95,6 +95,20 @@ namespace OfCourseIStillLoveYou
                 LogDetailedCameraStatus();
             }
 
+            if (Time.frameCount % 300 == 0)
+            {
+                Debug.Log("[OCISLY] ===== Periodic Status Check =====");
+                LogCommandBufferStatus();
+            }
+
+            foreach (var cam in _cameras)
+            {
+                if (cam != null && cam.enabled)
+                {
+                    ScattererWrapper.ForceEnableScattererComponents(cam);
+                }
+            }
+
             Graphics.CopyTexture(TargetCamRenderTexture, _texture2D);
 
             AsyncGPUReadback.Request(_texture2D, 0,
@@ -591,6 +605,40 @@ namespace OfCourseIStillLoveYou
                 else
                 {
                     Debug.Log($"[OCISLY] NO Scatterer/Parallax components on {cam.name}");
+                }
+            }
+        }
+        private void LogCommandBufferStatus()
+        {
+            foreach (var cam in _cameras)
+            {
+                if (cam == null) continue;
+
+                Debug.Log($"[OCISLY] ===== {cam.name} Active CommandBuffers =====");
+
+                var allEvents = (CameraEvent[])System.Enum.GetValues(typeof(CameraEvent));
+                int totalBuffers = 0;
+
+                foreach (var evt in allEvents)
+                {
+                    var buffers = cam.GetCommandBuffers(evt);
+                    if (buffers != null && buffers.Length > 0)
+                    {
+                        foreach (var buffer in buffers)
+                        {
+                            totalBuffers++;
+                            Debug.Log($"[OCISLY]   {evt}: {buffer.name}");
+                        }
+                    }
+                }
+
+                if (totalBuffers == 0)
+                {
+                    Debug.Log($"[OCISLY]   NO COMMAND BUFFERS on {cam.name}!");
+                }
+                else
+                {
+                    Debug.Log($"[OCISLY]   Total: {totalBuffers} command buffers");
                 }
             }
         }
