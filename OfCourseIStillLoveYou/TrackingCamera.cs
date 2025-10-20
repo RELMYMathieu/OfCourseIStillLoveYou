@@ -51,6 +51,7 @@ namespace OfCourseIStillLoveYou
         private byte[] _jpgTexture;
 
         private bool _lastDebugModeState = false;
+        private bool _diagnosticRun = false;
 
         public void SyncDebugMode(bool debugModeEnabled)
         {
@@ -88,6 +89,11 @@ namespace OfCourseIStillLoveYou
         {
             if (!OddFrames) return;
             if (!StreamingEnabled) return;
+
+            if (Time.frameCount % 300 == 0)
+            {
+                LogDetailedCameraStatus();
+            }
 
             Graphics.CopyTexture(TargetCamRenderTexture, _texture2D);
 
@@ -339,8 +345,13 @@ namespace OfCourseIStillLoveYou
 
             Name = _hullcamera.vessel.GetDisplayName() + "." + _hullcamera.cameraName;
 
-            _windowRect = GUI.Window(Id, _windowRect, WindowTargetCam,
-                Name);
+            _windowRect = GUI.Window(Id, _windowRect, WindowTargetCam, Name);
+
+            if (Time.timeSinceLevelLoad > 2f && !_diagnosticRun)
+            {
+                _diagnosticRun = true;
+                LogDetailedCameraStatus();
+            }
         }
 
         public void CheckIfResizing()
@@ -517,6 +528,69 @@ namespace OfCourseIStillLoveYou
                     ScattererWrapper.RemoveScattererFromCamera(camera);
 
                     camera.enabled = false;
+                }
+            }
+        }
+
+        private void LogDetailedCameraStatus()
+        {
+            if (_cameras == null) return;
+
+            Debug.Log("[OCISLY] ===== Checking for Scatterer GameObjects in scene =====");
+
+            // Find Scatterer ocean/atmosphere objects
+            var allObjects = UnityEngine.Object.FindObjectsOfType<GameObject>();
+            var scattererObjects = allObjects.Where(go =>
+                go.name.Contains("Scatterer") ||
+                go.name.Contains("screenspace scattering") ||
+                go.name.Contains("Ocean")).ToList();
+
+            Debug.Log($"[OCISLY] Found {scattererObjects.Count} potential Scatterer GameObjects");
+            foreach (var obj in scattererObjects.Take(10))
+            {
+                Debug.Log($"[OCISLY]   - {obj.name} (layer: {obj.layer}, active: {obj.activeInHierarchy})");
+            }
+
+            foreach (var cam in _cameras)
+            {
+                if (cam == null) continue;
+
+                Debug.Log($"[OCISLY] ===== {cam.name} Status =====");
+                Debug.Log($"[OCISLY] Enabled: {cam.enabled}");
+                Debug.Log($"[OCISLY] Culling Mask: {cam.cullingMask} (binary: {Convert.ToString(cam.cullingMask, 2)})");
+                Debug.Log($"[OCISLY] Layer 9 visible: {(cam.cullingMask & (1 << 9)) != 0}");
+                Debug.Log($"[OCISLY] Layer 15 visible: {(cam.cullingMask & (1 << 15)) != 0}");
+                Debug.Log($"[OCISLY] TargetTexture: {(cam.targetTexture != null ? cam.targetTexture.name : "null")}");
+                Debug.Log($"[OCISLY] Position: {cam.transform.position}");
+                Debug.Log($"[OCISLY] Rotation: {cam.transform.rotation.eulerAngles}");
+
+                var scatteringType = System.Type.GetType("Scatterer.ScatteringCommandBuffer, scatterer");
+                var oceanType = System.Type.GetType("Scatterer.OceanCommandBuffer, scatterer");
+                var skySphereType = System.Type.GetType("Scatterer.SkySphereLocalCommandBuffer, scatterer");
+
+                var scatteringBuf = scatteringType != null ? cam.GetComponent(scatteringType) : null;
+                var oceanBuf = oceanType != null ? cam.GetComponent(oceanType) : null;
+                var skySphereBuf = skySphereType != null ? cam.GetComponent(skySphereType) : null;
+
+                Debug.Log($"[OCISLY] ScatteringCommandBuffer: {scatteringBuf != null}");
+                Debug.Log($"[OCISLY] OceanCommandBuffer: {oceanBuf != null}");
+                Debug.Log($"[OCISLY] SkySphereLocalCommandBuffer: {skySphereBuf != null}");
+
+                var relevantComps = cam.GetComponents<Component>()
+                    .Where(c => c.GetType().Namespace == "Scatterer" || c.GetType().Namespace == "Parallax")
+                    .ToList();
+
+                if (relevantComps.Count > 0)
+                {
+                    Debug.Log($"[OCISLY] Scatterer/Parallax components on {cam.name}:");
+                    foreach (var comp in relevantComps)
+                    {
+                        Debug.Log($"[OCISLY]   - {comp.GetType().FullName}");
+                    }
+                }
+                else
+                {
+                    Debug.Log($"[OCISLY] NO Scatterer/Parallax components on {cam.name}");
                 }
             }
         }
