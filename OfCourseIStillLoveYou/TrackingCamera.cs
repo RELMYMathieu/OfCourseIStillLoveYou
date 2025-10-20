@@ -274,9 +274,9 @@ namespace OfCourseIStillLoveYou
             ParallaxWrapper.ApplyParallaxToCamera(galaxyCam, mainGalaxyCam);
 
             //Scatterer for all cameras
-            ScattererWrapper.ApplyScattererToCamera(partNearCamera, mainCamera);
-            ScattererWrapper.ApplyScattererToCamera(partScaledCamera, mainSkyCam);
-            ScattererWrapper.ApplyScattererToCamera(galaxyCam, mainGalaxyCam);
+            ScattererWrapper.ApplyScattererToCamera(partNearCamera);
+            ScattererWrapper.ApplyScattererToCamera(partScaledCamera);
+            ScattererWrapper.ApplyScattererToCamera(galaxyCam);
 
             var camRotatorgalaxy = galaxyCamObj.AddComponent<TgpCamRotator>();
             camRotatorgalaxy.NearCamera = partNearCamera;

@@ -96,7 +96,6 @@ namespace OfCourseIStillLoveYou
                 }
 
                 AddEVEComponent(targetCamera, referenceCamera, _wetSurfacesRendererType, "WetSurfacesRenderer");
-                AddEVEComponent(targetCamera, referenceCamera, _screenSpaceShadowsRendererType, "ScreenSpaceShadowsRenderer");
                 AddEVEComponent(targetCamera, referenceCamera, _volumetricCloudsRendererType, "VolumetricCloudsRenderer");
                 AddEVEComponent(targetCamera, referenceCamera, _particleFieldRendererType, "ParticleFieldRenderer");
 
@@ -247,7 +246,7 @@ namespace OfCourseIStillLoveYou
                 foreach (var evt in events)
                 {
                     var buffers = camera.GetCommandBuffers(evt);
-                    foreach (var buffer in buffers)
+                    foreach (var buffer in buffers.ToArray())
                     {
                         if (buffer.name.Contains("EVE") ||
                             buffer.name.Contains("Wet") ||
