@@ -273,6 +273,11 @@ namespace OfCourseIStillLoveYou
             // Parallax for galaxy camera
             ParallaxWrapper.ApplyParallaxToCamera(galaxyCam, mainGalaxyCam);
 
+            //Scatterer for all cameras
+            ScattererWrapper.ApplyScattererToCamera(partNearCamera, mainCamera);
+            ScattererWrapper.ApplyScattererToCamera(partScaledCamera, mainSkyCam);
+            ScattererWrapper.ApplyScattererToCamera(galaxyCam, mainGalaxyCam);
+
             var camRotatorgalaxy = galaxyCamObj.AddComponent<TgpCamRotator>();
             camRotatorgalaxy.NearCamera = partNearCamera;
             galaxyCamObj.AddComponent<CanvasHack>();
@@ -500,11 +505,16 @@ namespace OfCourseIStillLoveYou
             {
                 if (camera != null)
                 {
+                    // Disable Deferred Rendering
                     DeferredWrapper.ForceRemoveDebugMode(camera);
                     DeferredWrapper.DisableDeferredRendering(camera);
 
+                    // Disable Parallax and EVE wrappers
                     ParallaxWrapper.RemoveParallaxFromCamera(camera);
                     EVEWrapper.RemoveEVEFromCamera(camera);
+
+                    // Disable Scatterer wrapper
+                    ScattererWrapper.RemoveScattererFromCamera(camera);
 
                     camera.enabled = false;
                 }
