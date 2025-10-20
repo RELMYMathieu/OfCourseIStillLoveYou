@@ -189,7 +189,10 @@ namespace OfCourseIStillLoveYou
             var cam1Obj = new GameObject();
             var partNearCamera = cam1Obj.AddComponent<Camera>();
 
-            partNearCamera.CopyFrom(Camera.allCameras.FirstOrDefault(cam => cam.name == "Camera 00"));
+            // Find reference camera for copying settings
+            var mainCamera = Camera.allCameras.FirstOrDefault(cam => cam.name == "Camera 00");
+
+            partNearCamera.CopyFrom(mainCamera);
             partNearCamera.name = "jrNear";
             partNearCamera.transform.parent = _hullcamera.cameraTransformName.Length <= 0
                 ? _hullcamera.part.transform
@@ -213,6 +216,11 @@ namespace OfCourseIStillLoveYou
             //TUFX
             AddTufxPostProcessing();
 
+            // === NEW: Parallax Integration ===
+            ParallaxWrapper.ApplyParallaxToCamera(partNearCamera, mainCamera);
+            Debug.Log("[OCISLY] Parallax diagnostic for Near Camera:\n" +
+                      ParallaxWrapper.GetDiagnosticInfo(partNearCamera));
+
             var cam2Obj = new GameObject();
             var partScaledCamera = cam2Obj.AddComponent<Camera>();
             var mainSkyCam = FindCamera("Camera ScaledSpace");
@@ -233,6 +241,9 @@ namespace OfCourseIStillLoveYou
 
             DeferredWrapper.EnableDeferredRendering(partScaledCamera);
             DeferredWrapper.SyncDebugMode(partScaledCamera);
+
+            // Parallax for scaled camera
+            ParallaxWrapper.ApplyParallaxToCamera(partScaledCamera, mainSkyCam);
 
             var camRotator = cam2Obj.AddComponent<TgpCamRotator>();
             camRotator.NearCamera = partNearCamera;
@@ -258,6 +269,9 @@ namespace OfCourseIStillLoveYou
 
             DeferredWrapper.EnableDeferredRendering(galaxyCam);
             DeferredWrapper.SyncDebugMode(galaxyCam);
+
+            // Parallax for galaxy camera
+            ParallaxWrapper.ApplyParallaxToCamera(galaxyCam, mainGalaxyCam);
 
             var camRotatorgalaxy = galaxyCamObj.AddComponent<TgpCamRotator>();
             camRotatorgalaxy.NearCamera = partNearCamera;
@@ -461,6 +475,10 @@ namespace OfCourseIStillLoveYou
                 {
                     DeferredWrapper.ForceRemoveDebugMode(camera);
                     DeferredWrapper.DisableDeferredRendering(camera);
+
+                    // === NEW: Remove Parallax ===
+                    ParallaxWrapper.RemoveParallaxFromCamera(camera);
+
                     camera.enabled = false;
                 }
             }
