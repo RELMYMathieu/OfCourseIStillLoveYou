@@ -12,13 +12,12 @@ namespace OfCourseIStillLoveYou
         private static bool? _isParallaxAvailable;
         private static Assembly _parallaxAssembly;
 
-        private static Type _parallaxCameraManagerType;
-        private static Type _reflectionRendererType;
-        private static Type _oceanReflectionManagerType;
+        private static Type _scatterManagerType;
+        private static Type _scatterRendererType;
 
-        private static MethodInfo _registerCameraMethod;
-        private static MethodInfo _unregisterCameraMethod;
-        private static FieldInfo _commandBuffersField;
+        private static FieldInfo _instanceField;
+        private static FieldInfo _activeScatterRenderersField;
+        private static MethodInfo _renderInCamerasMethod;
 
         public static bool IsParallaxAvailable
         {
@@ -29,8 +28,30 @@ namespace OfCourseIStillLoveYou
 
                 try
                 {
+                    Debug.Log("[OfCourseIStillLoveYou]: Searching for Parallax assembly...");
+
                     _parallaxAssembly = AssemblyLoader.loadedAssemblies
                         .FirstOrDefault(a => a.name == "Parallax")?.assembly;
+
+                    if (_parallaxAssembly == null)
+                    {
+                        Debug.Log("[OfCourseIStillLoveYou]: Assembly 'Parallax' not found in AssemblyLoader. Searching all assemblies...");
+
+                        var allAssemblies = AssemblyLoader.loadedAssemblies.Select(a => a.name).ToArray();
+                        Debug.Log("[OfCourseIStillLoveYou]: Available assemblies: " + string.Join(", ", allAssemblies));
+
+                        _parallaxAssembly = AppDomain.CurrentDomain.GetAssemblies()
+                            .FirstOrDefault(a => !a.IsDynamic && a.GetName().Name.Contains("Parallax"));
+
+                        if (_parallaxAssembly != null)
+                        {
+                            Debug.Log($"[OfCourseIStillLoveYou]: Found Parallax via AppDomain: {_parallaxAssembly.GetName().Name}");
+                        }
+                    }
+                    else
+                    {
+                        Debug.Log($"[OfCourseIStillLoveYou]: Found Parallax assembly: {_parallaxAssembly.GetName().Name}");
+                    }
 
                     if (_parallaxAssembly == null)
                     {
@@ -39,22 +60,36 @@ namespace OfCourseIStillLoveYou
                         return false;
                     }
 
-                    _parallaxCameraManagerType = FindType("ParallaxCameraManager")
-                        ?? FindType("CameraManager")
-                        ?? FindType("Parallax.CameraManager");
+                    _scatterManagerType = _parallaxAssembly.GetType("Parallax.ScatterManager");
+                    Debug.Log($"[OfCourseIStillLoveYou]: ScatterManager type: {(_scatterManagerType != null ? "FOUND" : "NOT FOUND")}");
 
-                    _reflectionRendererType = FindType("ReflectionRenderer")
-                        ?? FindType("Parallax.ReflectionRenderer");
+                    _scatterRendererType = _parallaxAssembly.GetType("Parallax.ScatterRenderer");
+                    Debug.Log($"[OfCourseIStillLoveYou]: ScatterRenderer type: {(_scatterRendererType != null ? "FOUND" : "NOT FOUND")}");
 
-                    _oceanReflectionManagerType = FindType("OceanReflectionManager")
-                        ?? FindType("Parallax.OceanReflectionManager");
-
-                    if (_parallaxCameraManagerType != null)
+                    if (_scatterManagerType == null || _scatterRendererType == null)
                     {
-                        _registerCameraMethod = _parallaxCameraManagerType.GetMethod("RegisterCamera",
-                            BindingFlags.Public | BindingFlags.Static);
-                        _unregisterCameraMethod = _parallaxCameraManagerType.GetMethod("UnregisterCamera",
-                            BindingFlags.Public | BindingFlags.Static);
+                        Debug.LogWarning("[OfCourseIStillLoveYou]: Parallax types not found - incompatible Parallax version?");
+                        _isParallaxAvailable = false;
+                        return false;
+                    }
+
+                    _instanceField = _scatterManagerType.GetField("Instance",
+                        BindingFlags.Public | BindingFlags.Static);
+                    Debug.Log($"[OfCourseIStillLoveYou]: Instance field: {(_instanceField != null ? "FOUND" : "NOT FOUND")}");
+
+                    _activeScatterRenderersField = _scatterManagerType.GetField("activeScatterRenderers",
+                        BindingFlags.Public | BindingFlags.Instance);
+                    Debug.Log($"[OfCourseIStillLoveYou]: activeScatterRenderers field: {(_activeScatterRenderersField != null ? "FOUND" : "NOT FOUND")}");
+
+                    _renderInCamerasMethod = _scatterRendererType.GetMethod("RenderInCameras",
+                        BindingFlags.Public | BindingFlags.Instance);
+                    Debug.Log($"[OfCourseIStillLoveYou]: RenderInCameras method: {(_renderInCamerasMethod != null ? "FOUND" : "NOT FOUND")}");
+
+                    if (_instanceField == null || _activeScatterRenderersField == null || _renderInCamerasMethod == null)
+                    {
+                        Debug.LogWarning("[OfCourseIStillLoveYou]: Parallax members not found");
+                        _isParallaxAvailable = false;
+                        return false;
                     }
 
                     _isParallaxAvailable = true;
@@ -63,193 +98,73 @@ namespace OfCourseIStillLoveYou
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError($"[OfCourseIStillLoveYou]: Error checking Parallax availability: {ex.Message}");
+                    Debug.LogError($"[OfCourseIStillLoveYou]: Error checking Parallax availability: {ex.Message}\n{ex.StackTrace}");
                     _isParallaxAvailable = false;
                     return false;
                 }
             }
         }
 
-        private static Type FindType(string typeName)
+        public static void RenderParallaxToCustomCameras(params Camera[] cameras)
         {
-            if (_parallaxAssembly == null) return null;
+            if (!IsParallaxAvailable || cameras == null || cameras.Length == 0)
+            {
+                Debug.Log($"[OfCourseIStillLoveYou]: Parallax render skipped - Available:{IsParallaxAvailable} Cameras:{cameras?.Length ?? 0}");
+                return;
+            }
 
-            var type = _parallaxAssembly.GetType(typeName);
-            if (type != null) return type;
+            try
+            {
+                var instance = _instanceField.GetValue(null);
+                if (instance == null)
+                {
+                    Debug.LogWarning("[OfCourseIStillLoveYou]: ScatterManager instance is null");
+                    return;
+                }
 
-            return _parallaxAssembly.GetTypes()
-                .FirstOrDefault(t => t.Name.Contains(typeName) || t.FullName.Contains(typeName));
+                var activeRenderers = _activeScatterRenderersField.GetValue(instance) as System.Collections.IList;
+                if (activeRenderers == null || activeRenderers.Count == 0)
+                {
+                    Debug.LogWarning($"[OfCourseIStillLoveYou]: No active renderers - List null:{activeRenderers == null} Count:{activeRenderers?.Count ?? 0}");
+                    return;
+                }
+
+                Debug.Log($"[OfCourseIStillLoveYou]: Rendering {activeRenderers.Count} Parallax scatters to {cameras.Length} cameras");
+
+                foreach (var renderer in activeRenderers)
+                {
+                    if (renderer != null)
+                    {
+                        _renderInCamerasMethod.Invoke(renderer, new object[] { cameras });
+                    }
+                }
+
+                Debug.Log("[OfCourseIStillLoveYou]: Parallax render complete");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[OfCourseIStillLoveYou]: Failed to render Parallax scatter: {ex.Message}\n{ex.StackTrace}");
+            }
         }
 
         public static void ApplyParallaxToCamera(Camera targetCamera, Camera referenceCamera = null)
         {
-            if (!IsParallaxAvailable)
-            {
-                Debug.Log("[OfCourseIStillLoveYou]: Parallax not available, skipping terrain effects");
+            if (!IsParallaxAvailable || targetCamera == null)
                 return;
-            }
-
-            if (targetCamera == null)
-            {
-                Debug.LogWarning("[OfCourseIStillLoveYou]: Cannot apply Parallax to null camera");
-                return;
-            }
 
             try
             {
-                if (referenceCamera == null)
+                int originalMask = targetCamera.cullingMask;
+                targetCamera.cullingMask |= (1 << 15);
+
+                if (originalMask != targetCamera.cullingMask)
                 {
-                    referenceCamera = Camera.allCameras.FirstOrDefault(c => c.name == "Camera 00");
-                }
-
-                if (referenceCamera == null)
-                {
-                    Debug.LogWarning("[OfCourseIStillLoveYou]: No reference camera found for Parallax");
-                    return;
-                }
-
-                RegisterWithParallaxManager(targetCamera);
-
-                CopyCommandBuffers(referenceCamera, targetCamera);
-
-                CopyParallaxComponents(referenceCamera, targetCamera);
-
-                Debug.Log($"[OfCourseIStillLoveYou]: Applied Parallax terrain effects to camera {targetCamera.name}");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[OfCourseIStillLoveYou]: Failed to apply Parallax: {ex.Message}\n{ex.StackTrace}");
-            }
-        }
-
-        private static void RegisterWithParallaxManager(Camera camera)
-        {
-            if (_registerCameraMethod != null)
-            {
-                try
-                {
-                    _registerCameraMethod.Invoke(null, new object[] { camera });
-                    Debug.Log($"[OfCourseIStillLoveYou]: Registered {camera.name} with Parallax manager");
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogWarning($"[OfCourseIStillLoveYou]: Could not register camera with Parallax: {ex.Message}");
-                }
-            }
-        }
-
-        private static void CopyCommandBuffers(Camera source, Camera target)
-        {
-            try
-            {
-                var events = new[]
-                {
-                    CameraEvent.BeforeDepthTexture,
-                    CameraEvent.BeforeGBuffer,
-                    CameraEvent.AfterGBuffer,
-                    CameraEvent.BeforeImageEffects,
-                    CameraEvent.AfterImageEffects,
-                    CameraEvent.BeforeLighting,
-                    CameraEvent.AfterLighting
-                };
-
-                foreach (var evt in events)
-                {
-                    var buffers = source.GetCommandBuffers(evt);
-                    if (buffers != null && buffers.Length > 0)
-                    {
-                        foreach (var buffer in buffers)
-                        {
-                            if (buffer.name.Contains("Parallax") ||
-                                buffer.name.Contains("Terrain") ||
-                                buffer.name.Contains("Reflection") ||
-                                buffer.name.Contains("Ocean"))
-                            {
-                                var existingBuffers = target.GetCommandBuffers(evt);
-                                bool alreadyExists = existingBuffers.Any(b => b.name == buffer.name);
-
-                                if (!alreadyExists)
-                                {
-                                    target.AddCommandBuffer(evt, buffer);
-                                    Debug.Log($"[OfCourseIStillLoveYou]: Copied CommandBuffer '{buffer.name}' at {evt}");
-                                }
-                            }
-                        }
-                    }
+                    Debug.Log($"[OfCourseIStillLoveYou]: Updated {targetCamera.name} culling mask for Parallax (layer 15)");
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"[OfCourseIStillLoveYou]: Error copying CommandBuffers: {ex.Message}");
-            }
-        }
-
-        private static void CopyParallaxComponents(Camera source, Camera target)
-        {
-            if (_parallaxAssembly == null) return;
-
-            try
-            {
-                var sourceComponents = source.GetComponents<Component>();
-
-                foreach (var component in sourceComponents)
-                {
-                    if (component == null) continue;
-
-                    var componentType = component.GetType();
-
-                    if (componentType.Assembly == _parallaxAssembly)
-                    {
-                        var existing = target.gameObject.GetComponent(componentType);
-                        if (existing == null)
-                        {
-                            var newComponent = target.gameObject.AddComponent(componentType);
-
-                            CopyComponentFields(component, newComponent);
-
-                            Debug.Log($"[OfCourseIStillLoveYou]: Copied Parallax component: {componentType.Name}");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"[OfCourseIStillLoveYou]: Error copying Parallax components: {ex.Message}");
-            }
-        }
-
-        private static void CopyComponentFields(Component source, Component target)
-        {
-            var type = source.GetType();
-
-            var fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
-            foreach (var field in fields)
-            {
-                try
-                {
-                    if (!field.IsLiteral && !field.IsInitOnly)
-                    {
-                        field.SetValue(target, field.GetValue(source));
-                    }
-                }
-                catch
-                {
-                }
-            }
-
-            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-            foreach (var property in properties)
-            {
-                try
-                {
-                    if (property.CanWrite && property.CanRead)
-                    {
-                        property.SetValue(target, property.GetValue(source));
-                    }
-                }
-                catch
-                {
-                }
+                Debug.LogError($"[OfCourseIStillLoveYou]: Failed to apply Parallax: {ex.Message}");
             }
         }
 
@@ -257,57 +172,7 @@ namespace OfCourseIStillLoveYou
         {
             if (camera == null) return;
 
-            try
-            {
-                if (_unregisterCameraMethod != null)
-                {
-                    _unregisterCameraMethod.Invoke(null, new object[] { camera });
-                }
-
-                if (_parallaxAssembly != null)
-                {
-                    var components = camera.GetComponents<Component>();
-                    foreach (var component in components)
-                    {
-                        if (component != null && component.GetType().Assembly == _parallaxAssembly)
-                        {
-                            UnityEngine.Object.Destroy(component);
-                        }
-                    }
-                }
-
-                var events = new[]
-                {
-                    CameraEvent.BeforeDepthTexture,
-                    CameraEvent.BeforeGBuffer,
-                    CameraEvent.AfterGBuffer,
-                    CameraEvent.BeforeImageEffects,
-                    CameraEvent.AfterImageEffects,
-                    CameraEvent.BeforeLighting,
-                    CameraEvent.AfterLighting
-                };
-
-                foreach (var evt in events)
-                {
-                    var buffers = camera.GetCommandBuffers(evt);
-                    foreach (var buffer in buffers)
-                    {
-                        if (buffer.name.Contains("Parallax") ||
-                            buffer.name.Contains("Terrain") ||
-                            buffer.name.Contains("Reflection") ||
-                            buffer.name.Contains("Ocean"))
-                        {
-                            camera.RemoveCommandBuffer(evt, buffer);
-                        }
-                    }
-                }
-
-                Debug.Log($"[OfCourseIStillLoveYou]: Removed Parallax from camera {camera.name}");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[OfCourseIStillLoveYou]: Error removing Parallax: {ex.Message}");
-            }
+            Debug.Log($"[OfCourseIStillLoveYou]: Parallax cleanup for {camera.name} (no action needed - scatter rendering is global)");
         }
 
         public static string GetDiagnosticInfo(Camera camera)
@@ -317,37 +182,29 @@ namespace OfCourseIStillLoveYou
 
             var info = $"Parallax Integration for {camera.name}:\n";
 
-            if (_parallaxAssembly != null)
-            {
-                var components = camera.GetComponents<Component>()
-                    .Where(c => c != null && c.GetType().Assembly == _parallaxAssembly)
-                    .ToList();
+            info += $"- Culling mask includes layer 15: {(camera.cullingMask & (1 << 15)) != 0}\n";
 
-                info += $"- Parallax components: {components.Count}\n";
-                foreach (var comp in components)
+            try
+            {
+                var instance = _instanceField.GetValue(null);
+                if (instance == null)
                 {
-                    info += $"  * {comp.GetType().Name}\n";
+                    info += "- ScatterManager instance not found\n";
+                    return info;
                 }
-            }
 
-            var bufferCount = 0;
-            var events = Enum.GetValues(typeof(CameraEvent)).Cast<CameraEvent>();
-            foreach (var evt in events)
-            {
-                var buffers = camera.GetCommandBuffers(evt);
-                foreach (var buffer in buffers)
+                var activeRenderers = _activeScatterRenderersField.GetValue(instance) as System.Collections.IList;
+                if (activeRenderers == null)
                 {
-                    if (buffer.name.Contains("Parallax"))
-                    {
-                        bufferCount++;
-                        info += $"- CommandBuffer: '{buffer.name}' at {evt}\n";
-                    }
+                    info += "- Active renderers list not found\n";
+                    return info;
                 }
-            }
 
-            if (bufferCount == 0)
+                info += $"- Active scatter renderers: {activeRenderers.Count}\n";
+            }
+            catch (Exception ex)
             {
-                info += "- No Parallax CommandBuffers found\n";
+                info += $"- Error: {ex.Message}\n";
             }
 
             return info;

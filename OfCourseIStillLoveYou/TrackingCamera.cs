@@ -109,6 +109,8 @@ namespace OfCourseIStillLoveYou
                 }
             }
 
+            ParallaxWrapper.RenderParallaxToCustomCameras(_cameras);
+
             Graphics.CopyTexture(TargetCamRenderTexture, _texture2D);
 
             AsyncGPUReadback.Request(_texture2D, 0,
@@ -128,7 +130,7 @@ namespace OfCourseIStillLoveYou
                 }
             );
         }
-   
+
 
 
         public TrackingCamera(int id, MuMechModuleHullCamera hullcamera)
