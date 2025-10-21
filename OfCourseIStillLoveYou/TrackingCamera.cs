@@ -541,6 +541,10 @@ namespace OfCourseIStillLoveYou
                     // Disable Scatterer wrapper
                     ScattererWrapper.RemoveScattererFromCamera(camera);
 
+                    // Disable Firefly wrapper and cleanup tracking
+                    FireflyWrapper.RemoveFireflyFromCamera(camera);
+                    FireflyWrapper.CleanupCamera(camera);
+
                     camera.enabled = false;
                 }
             }
@@ -639,6 +643,17 @@ namespace OfCourseIStillLoveYou
                 else
                 {
                     Debug.Log($"[OCISLY]   Total: {totalBuffers} command buffers");
+                }
+            }
+        }
+
+        public void UpdateFireflyEffects()
+        {
+            foreach (var cam in _cameras)
+            {
+                if (cam != null)
+                {
+                    FireflyWrapper.UpdateFireflyForCamera(cam, _hullcamera.vessel);
                 }
             }
         }

@@ -114,6 +114,7 @@
   <ItemGroup>
     <Compile Include="DeferredWrapper.cs" />
     <Compile Include="EVEWrapper.cs" />
+    <Compile Include="FireflyWrapper.cs" />
     <Compile Include="ParallaxWrapper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ScattererWrapper.cs" />
