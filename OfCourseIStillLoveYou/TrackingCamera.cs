@@ -88,7 +88,6 @@ namespace OfCourseIStillLoveYou
         public void SendCameraImage()
         {
             if (!OddFrames) return;
-            if (!StreamingEnabled) return;
 
             if (Time.frameCount % 300 == 0)
             {
@@ -111,6 +110,8 @@ namespace OfCourseIStillLoveYou
 
             ParallaxWrapper.RenderParallaxToCustomCameras(_cameras);
 
+            if (!StreamingEnabled) return;
+
             Graphics.CopyTexture(TargetCamRenderTexture, _texture2D);
 
             AsyncGPUReadback.Request(_texture2D, 0,
@@ -130,8 +131,6 @@ namespace OfCourseIStillLoveYou
                 }
             );
         }
-
-
 
         public TrackingCamera(int id, MuMechModuleHullCamera hullcamera)
         {
