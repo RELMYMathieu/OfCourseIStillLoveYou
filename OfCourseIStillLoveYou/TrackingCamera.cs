@@ -200,7 +200,6 @@ namespace OfCourseIStillLoveYou
             var mainCamera = Camera.allCameras.FirstOrDefault(cam => cam.name == "Camera 00");
 
             partNearCamera.CopyFrom(mainCamera);
-            partNearCamera.name = "jrNear";
             partNearCamera.transform.parent = _hullcamera.cameraTransformName.Length <= 0
                 ? _hullcamera.part.transform
                 : _hullcamera.part.FindModelTransform(_hullcamera.cameraTransformName);
@@ -212,6 +211,9 @@ namespace OfCourseIStillLoveYou
             partNearCamera.allowHDR = true;
             partNearCamera.allowMSAA = true;
             partNearCamera.enabled = true;
+
+            // Set name AFTER CopyFrom to prevent it being overwritten
+            partNearCamera.name = "jrNear";
 
             Debug.Log($"[OCISLY] Created near camera: {partNearCamera.name} (GameObject: {cam1Obj.name})");
 
@@ -645,6 +647,13 @@ namespace OfCourseIStillLoveYou
                     FireflyWrapper.UpdateFireflyForCamera(cam, _hullcamera.vessel);
                 }
             }
+        }
+
+        public void RenderParallaxScatters()
+        {
+            // Parallax requires explicit render calls to display scatter objects (grass, rocks, trees)
+            // This is called every other frame (when OddFrames is true) from Core.Refresh()
+            ParallaxWrapper.RenderParallaxToCustomCameras(_cameras);
         }
     }
 }

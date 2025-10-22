@@ -78,6 +78,8 @@ namespace OfCourseIStillLoveYou
                 trackedCamerasValue.CalculateSpeedAltitude();
                 trackedCamerasValue.SendCameraImage();
 
+                trackedCamerasValue.RenderParallaxScatters();
+
                 trackedCamerasValue.UpdateFireflyEffects();
             }
         }
