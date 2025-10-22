@@ -19,6 +19,8 @@ namespace OfCourseIStillLoveYou
         private static FieldInfo _activeScatterRenderersField;
         private static MethodInfo _renderInCamerasMethod;
 
+        private static int _lastParallaxLogFrame = -999;
+
         public static bool IsParallaxAvailable
         {
             get
@@ -108,28 +110,24 @@ namespace OfCourseIStillLoveYou
         public static void RenderParallaxToCustomCameras(params Camera[] cameras)
         {
             if (!IsParallaxAvailable || cameras == null || cameras.Length == 0)
-            {
-                Debug.Log($"[OfCourseIStillLoveYou]: Parallax render skipped - Available:{IsParallaxAvailable} Cameras:{cameras?.Length ?? 0}");
                 return;
-            }
 
             try
             {
                 var instance = _instanceField.GetValue(null);
                 if (instance == null)
-                {
-                    Debug.LogWarning("[OfCourseIStillLoveYou]: ScatterManager instance is null");
                     return;
-                }
 
                 var activeRenderers = _activeScatterRenderersField.GetValue(instance) as System.Collections.IList;
                 if (activeRenderers == null || activeRenderers.Count == 0)
-                {
-                    Debug.LogWarning($"[OfCourseIStillLoveYou]: No active renderers - List null:{activeRenderers == null} Count:{activeRenderers?.Count ?? 0}");
                     return;
-                }
 
-                Debug.Log($"[OfCourseIStillLoveYou]: Rendering {activeRenderers.Count} Parallax scatters to {cameras.Length} cameras");
+                // Log every 10,000 frames to avoid spamming the log, but still provide feedback
+                if (Time.frameCount - _lastParallaxLogFrame > 10000 || _lastParallaxLogFrame == -999)
+                {
+                    Debug.Log($"[OfCourseIStillLoveYou]: Rendering {activeRenderers.Count} Parallax scatters to {cameras.Length} cameras");
+                    _lastParallaxLogFrame = Time.frameCount;
+                }
 
                 foreach (var renderer in activeRenderers)
                 {
@@ -138,8 +136,6 @@ namespace OfCourseIStillLoveYou
                         _renderInCamerasMethod.Invoke(renderer, new object[] { cameras });
                     }
                 }
-
-                Debug.Log("[OfCourseIStillLoveYou]: Parallax render complete");
             }
             catch (Exception ex)
             {

@@ -204,10 +204,12 @@ namespace OfCourseIStillLoveYou
             var cam1Obj = new GameObject("OCISLY_NearCamera");
             var partNearCamera = cam1Obj.AddComponent<Camera>();
 
-            // Find reference camera for copying settings
             var mainCamera = Camera.allCameras.FirstOrDefault(cam => cam.name == "Camera 00");
-
             partNearCamera.CopyFrom(mainCamera);
+
+
+            partNearCamera.name = "jrNear";
+            cam1Obj.name = "OCISLY_NearCamera";
             partNearCamera.transform.parent = _hullcamera.cameraTransformName.Length <= 0
                 ? _hullcamera.part.transform
                 : _hullcamera.part.FindModelTransform(_hullcamera.cameraTransformName);
@@ -219,9 +221,6 @@ namespace OfCourseIStillLoveYou
             partNearCamera.allowHDR = true;
             partNearCamera.allowMSAA = true;
             partNearCamera.enabled = true;
-
-            // Set name AFTER CopyFrom to prevent it being overwritten
-            partNearCamera.name = "jrNear";
 
             Debug.Log($"[OCISLY] Created near camera: {partNearCamera.name} (GameObject: {cam1Obj.name})");
 
