@@ -10,6 +10,13 @@ namespace OfCourseIStillLoveYou
         private static bool? _isScattererAvailable;
         private static Assembly _scattererAssembly;
 
+        private static Type _scatteringCommandBufferType;
+        private static Type _oceanCommandBufferType;
+        private static Type _skySphereCommandBufferType;
+
+        private static MethodInfo _scatteringEnableMethod;
+        private static MethodInfo _oceanEnableMethod;
+
         public static bool IsScattererAvailable
         {
             get
@@ -31,6 +38,26 @@ namespace OfCourseIStillLoveYou
                         _isScattererAvailable = false;
                         return false;
                     }
+
+                    _scatteringCommandBufferType = _scattererAssembly.GetType("Scatterer.ScatteringCommandBuffer");
+                    _oceanCommandBufferType = _scattererAssembly.GetType("Scatterer.OceanCommandBuffer");
+                    _skySphereCommandBufferType = _scattererAssembly.GetType("Scatterer.SkySphereLocalCommandBuffer");
+
+                    if (_scatteringCommandBufferType == null || _oceanCommandBufferType == null)
+                    {
+                        Debug.LogWarning("[OfCourseIStillLoveYou]: Scatterer component types not found");
+                        _isScattererAvailable = false;
+                        return false;
+                    }
+
+                    _scatteringEnableMethod = _scatteringCommandBufferType.GetMethod("EnableForThisFrame",
+                        BindingFlags.Public | BindingFlags.Instance);
+                    _oceanEnableMethod = _oceanCommandBufferType.GetMethod("EnableForThisFrame",
+                        BindingFlags.Public | BindingFlags.Instance);
+
+                    Debug.Log($"[OfCourseIStillLoveYou]: Scatterer types found - " +
+                              $"ScatteringEnable: {_scatteringEnableMethod != null}, " +
+                              $"OceanEnable: {_oceanEnableMethod != null}");
 
                     _isScattererAvailable = true;
                     Debug.Log("[OfCourseIStillLoveYou]: Scatterer integration enabled");
@@ -62,6 +89,7 @@ namespace OfCourseIStillLoveYou
             {
                 int originalMask = targetCamera.cullingMask;
 
+                // Add Scatterer layers (9 and 15)
                 targetCamera.cullingMask |= (1 << 9);
                 targetCamera.cullingMask |= (1 << 15);
 
@@ -71,10 +99,34 @@ namespace OfCourseIStillLoveYou
                 }
 
                 Debug.Log($"[OfCourseIStillLoveYou]: Scatterer will auto-register to {targetCamera.name} when objects are visible");
+
+                UnityEngine.Object.FindObjectOfType<MonoBehaviour>()?.StartCoroutine(CheckScattererComponentsDelayed(targetCamera));
             }
             catch (Exception ex)
             {
                 Debug.LogError($"[OfCourseIStillLoveYou]: Failed to apply Scatterer: {ex.Message}");
+            }
+        }
+
+        private static System.Collections.IEnumerator CheckScattererComponentsDelayed(Camera camera)
+        {
+            yield return new UnityEngine.WaitForSeconds(0.5f);
+
+            if (camera == null) yield break;
+
+            var scattering = _scatteringCommandBufferType != null ? camera.GetComponent(_scatteringCommandBufferType) : null;
+            var ocean = _oceanCommandBufferType != null ? camera.GetComponent(_oceanCommandBufferType) : null;
+            var skySphere = _skySphereCommandBufferType != null ? camera.GetComponent(_skySphereCommandBufferType) : null;
+
+            Debug.Log($"[OfCourseIStillLoveYou]: Scatterer auto-registration check for {camera.name}:");
+            Debug.Log($"  - ScatteringCommandBuffer: {scattering != null}");
+            Debug.Log($"  - OceanCommandBuffer: {ocean != null}");
+            Debug.Log($"  - SkySphereLocalCommandBuffer: {skySphere != null}");
+
+            if (scattering == null && ocean == null && skySphere == null)
+            {
+                Debug.LogWarning($"[OfCourseIStillLoveYou]: Scatterer did NOT auto-register components to {camera.name}. " +
+                                "This may be normal if no Scatterer effects are active on the current body.");
             }
         }
 
@@ -85,33 +137,45 @@ namespace OfCourseIStillLoveYou
 
             try
             {
-                var scatteringBufferType = _scattererAssembly?.GetType("Scatterer.ScatteringCommandBuffer");
-                var oceanBufferType = _scattererAssembly?.GetType("Scatterer.OceanCommandBuffer");
+                bool anyEnabled = false;
 
-                if (scatteringBufferType != null)
+                if (_scatteringCommandBufferType != null && _scatteringEnableMethod != null)
                 {
-                    var component = camera.GetComponent(scatteringBufferType);
+                    var component = camera.GetComponent(_scatteringCommandBufferType);
                     if (component != null)
                     {
-                        var enableMethod = scatteringBufferType.GetMethod("EnableForThisFrame", BindingFlags.Public | BindingFlags.Instance);
-                        if (enableMethod != null)
+                        try
                         {
-                            enableMethod.Invoke(component, null);
+                            _scatteringEnableMethod.Invoke(component, null);
+                            anyEnabled = true;
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogWarning($"[OfCourseIStillLoveYou]: Failed to enable ScatteringCommandBuffer: {ex.Message}");
                         }
                     }
                 }
 
-                if (oceanBufferType != null)
+                if (_oceanCommandBufferType != null && _oceanEnableMethod != null)
                 {
-                    var component = camera.GetComponent(oceanBufferType);
+                    var component = camera.GetComponent(_oceanCommandBufferType);
                     if (component != null)
                     {
-                        var enableMethod = oceanBufferType.GetMethod("EnableForThisFrame", BindingFlags.Public | BindingFlags.Instance);
-                        if (enableMethod != null)
+                        try
                         {
-                            enableMethod.Invoke(component, null);
+                            _oceanEnableMethod.Invoke(component, null);
+                            anyEnabled = true;
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogWarning($"[OfCourseIStillLoveYou]: Failed to enable OceanCommandBuffer: {ex.Message}");
                         }
                     }
+                }
+
+                if (anyEnabled && Time.frameCount % 300 == 0)
+                {
+                    Debug.Log($"[OfCourseIStillLoveYou]: Enabled Scatterer components for {camera.name}");
                 }
             }
             catch (Exception ex)
@@ -127,12 +191,9 @@ namespace OfCourseIStillLoveYou
 
             try
             {
-                var scatteringBufferType = _scattererAssembly?.GetType("Scatterer.ScatteringCommandBuffer");
-                var oceanBufferType = _scattererAssembly?.GetType("Scatterer.OceanCommandBuffer");
-
-                if (scatteringBufferType != null)
+                if (_scatteringCommandBufferType != null)
                 {
-                    var component = camera.GetComponent(scatteringBufferType);
+                    var component = camera.GetComponent(_scatteringCommandBufferType);
                     if (component != null)
                     {
                         UnityEngine.Object.Destroy(component);
@@ -140,13 +201,23 @@ namespace OfCourseIStillLoveYou
                     }
                 }
 
-                if (oceanBufferType != null)
+                if (_oceanCommandBufferType != null)
                 {
-                    var component = camera.GetComponent(oceanBufferType);
+                    var component = camera.GetComponent(_oceanCommandBufferType);
                     if (component != null)
                     {
                         UnityEngine.Object.Destroy(component);
                         Debug.Log($"[OfCourseIStillLoveYou]: Removed OceanCommandBuffer from {camera.name}");
+                    }
+                }
+
+                if (_skySphereCommandBufferType != null)
+                {
+                    var component = camera.GetComponent(_skySphereCommandBufferType);
+                    if (component != null)
+                    {
+                        UnityEngine.Object.Destroy(component);
+                        Debug.Log($"[OfCourseIStillLoveYou]: Removed SkySphereLocalCommandBuffer from {camera.name}");
                     }
                 }
             }
@@ -154,6 +225,43 @@ namespace OfCourseIStillLoveYou
             {
                 Debug.LogWarning($"[OfCourseIStillLoveYou]: Error removing Scatterer from camera: {ex.Message}");
             }
+        }
+
+        public static string GetDiagnosticInfo(Camera camera)
+        {
+            if (!IsScattererAvailable || camera == null)
+                return "Scatterer not available";
+
+            var info = $"Scatterer Integration for {camera.name}:\n";
+
+            info += $"- Culling mask includes layer 9: {(camera.cullingMask & (1 << 9)) != 0}\n";
+            info += $"- Culling mask includes layer 15: {(camera.cullingMask & (1 << 15)) != 0}\n";
+
+            try
+            {
+                var scattering = _scatteringCommandBufferType != null ? camera.GetComponent(_scatteringCommandBufferType) : null;
+                var ocean = _oceanCommandBufferType != null ? camera.GetComponent(_oceanCommandBufferType) : null;
+                var skySphere = _skySphereCommandBufferType != null ? camera.GetComponent(_skySphereCommandBufferType) : null;
+
+                info += $"- ScatteringCommandBuffer component: {scattering != null}\n";
+                info += $"- OceanCommandBuffer component: {ocean != null}\n";
+                info += $"- SkySphereLocalCommandBuffer component: {skySphere != null}\n";
+
+                if (_scatteringEnableMethod != null)
+                {
+                    info += $"- EnableForThisFrame method available: Yes\n";
+                }
+                else
+                {
+                    info += $"- EnableForThisFrame method available: No (reflection failed)\n";
+                }
+            }
+            catch (Exception ex)
+            {
+                info += $"- Error getting diagnostic info: {ex.Message}\n";
+            }
+
+            return info;
         }
     }
 }

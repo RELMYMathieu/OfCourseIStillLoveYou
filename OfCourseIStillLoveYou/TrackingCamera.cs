@@ -21,11 +21,11 @@ namespace OfCourseIStillLoveYou
         private static readonly Font TelemetryFont = Font.CreateDynamicFontFromOSFont("Bahnschrift Semibold", 17);
 
         private static readonly GUIStyle ButtonStyle = new GUIStyle(HighLogic.Skin.button)
-            {fontSize = 10, wordWrap = true};
+        { fontSize = 10, wordWrap = true };
 
 
         private static readonly GUIStyle TelemetryGuiStyle = new GUIStyle()
-            {alignment = TextAnchor.MiddleCenter, normal = new GUIStyleState() {textColor = Color.white}, fontStyle = FontStyle.Bold, font = TelemetryFont };
+        { alignment = TextAnchor.MiddleCenter, normal = new GUIStyleState() { textColor = Color.white }, fontStyle = FontStyle.Bold, font = TelemetryFont };
 
 
         public static Texture2D ResizeTexture =
@@ -92,23 +92,9 @@ namespace OfCourseIStillLoveYou
             if (Time.frameCount % 300 == 0)
             {
                 LogDetailedCameraStatus();
-            }
-
-            if (Time.frameCount % 300 == 0)
-            {
                 Debug.Log("[OCISLY] ===== Periodic Status Check =====");
                 LogCommandBufferStatus();
             }
-
-            foreach (var cam in _cameras)
-            {
-                if (cam != null && cam.enabled)
-                {
-                    ScattererWrapper.ForceEnableScattererComponents(cam);
-                }
-            }
-
-            ParallaxWrapper.RenderParallaxToCustomCameras(_cameras);
 
             if (!StreamingEnabled) return;
 
@@ -147,7 +133,7 @@ namespace OfCourseIStillLoveYou
             CalculateInitialSize();
 
             _windowWidth = _adjCamImageWidthSize + 3 * ButtonHeight + 16 + 2 * Gap;
-            _windowHeight = _adjCamImageHeightSize  + 23;
+            _windowHeight = _adjCamImageHeightSize + 23;
             _windowRect = new Rect(Screen.width - _windowWidth, Screen.height - _windowHeight, _windowWidth,
                 _windowHeight);
             SetCameras();
@@ -163,7 +149,7 @@ namespace OfCourseIStillLoveYou
                 _initialCamImageHeightSize = _adjCamImageHeightSize;
                 _adjCamImageWidthSize = 360;
 
-                
+
             }
             else
             {
@@ -207,7 +193,7 @@ namespace OfCourseIStillLoveYou
 
         private void SetCameras()
         {
-            var cam1Obj = new GameObject();
+            var cam1Obj = new GameObject("OCISLY_NearCamera");
             var partNearCamera = cam1Obj.AddComponent<Camera>();
 
             // Find reference camera for copying settings
@@ -226,6 +212,9 @@ namespace OfCourseIStillLoveYou
             partNearCamera.allowHDR = true;
             partNearCamera.allowMSAA = true;
             partNearCamera.enabled = true;
+
+            Debug.Log($"[OCISLY] Created near camera: {partNearCamera.name} (GameObject: {cam1Obj.name})");
+
             _cameras[0] = partNearCamera;
             _cameras[0].allowHDR = true;
             cam1Obj.AddComponent<CanvasHack>();
@@ -239,10 +228,8 @@ namespace OfCourseIStillLoveYou
 
             //Parallax for near camera
             ParallaxWrapper.ApplyParallaxToCamera(partNearCamera, mainCamera);
-            Debug.Log("[OCISLY] Parallax diagnostic for Near Camera:\n" +
-                      ParallaxWrapper.GetDiagnosticInfo(partNearCamera));
 
-            var cam2Obj = new GameObject();
+            var cam2Obj = new GameObject("OCISLY_ScaledCamera");
             var partScaledCamera = cam2Obj.AddComponent<Camera>();
             var mainSkyCam = FindCamera("Camera ScaledSpace");
 
@@ -263,7 +250,6 @@ namespace OfCourseIStillLoveYou
             DeferredWrapper.EnableDeferredRendering(partScaledCamera);
             DeferredWrapper.SyncDebugMode(partScaledCamera);
 
-            // Parallax for scaled camera
             ParallaxWrapper.ApplyParallaxToCamera(partScaledCamera, mainSkyCam);
 
             var camRotator = cam2Obj.AddComponent<TgpCamRotator>();
@@ -271,7 +257,7 @@ namespace OfCourseIStillLoveYou
             cam2Obj.AddComponent<CanvasHack>();
 
             //galaxy camera
-            var galaxyCamObj = new GameObject();
+            var galaxyCamObj = new GameObject("OCISLY_GalaxyCamera");
             var galaxyCam = galaxyCamObj.AddComponent<Camera>();
             var mainGalaxyCam = FindCamera("GalaxyCamera");
 
@@ -291,7 +277,6 @@ namespace OfCourseIStillLoveYou
             DeferredWrapper.EnableDeferredRendering(galaxyCam);
             DeferredWrapper.SyncDebugMode(galaxyCam);
 
-            // Parallax for galaxy camera
             ParallaxWrapper.ApplyParallaxToCamera(galaxyCam, mainGalaxyCam);
 
             //Scatterer for all cameras
@@ -307,7 +292,7 @@ namespace OfCourseIStillLoveYou
                 t.enabled = false;
 
             _lastDebugModeState = DeferredWrapper.IsDebugModeEnabled();
-            // I'm attempting to figure out how to get compat to work with Parallax terrain/ocean effects... Hmm...
+
             Debug.Log("[OCISLY] === Main Camera Components ===");
             foreach (var component in mainCamera.GetComponents<Component>())
             {
@@ -327,13 +312,15 @@ namespace OfCourseIStillLoveYou
                 }
             }
 
-            //EVE for near camera
+            //EVE for all cameras
             EVEWrapper.ApplyEVEToCamera(partNearCamera, mainCamera);
             EVEWrapper.ApplyEVEToCamera(partScaledCamera, mainSkyCam);
             EVEWrapper.ApplyEVEToCamera(galaxyCam, mainGalaxyCam);
 
-            Debug.Log("[OCISLY] EVE diagnostic for Near Camera:\n" +
-                      EVEWrapper.GetDiagnosticInfo(partNearCamera));
+            Debug.Log("[OCISLY] Verifying camera names:");
+            Debug.Log($"[OCISLY] - _cameras[0].name = {_cameras[0].name}");
+            Debug.Log($"[OCISLY] - _cameras[1].name = {_cameras[1].name}");
+            Debug.Log($"[OCISLY] - _cameras[2].name = {_cameras[2].name}");
         }
 
         private void AddTufxPostProcessing()
@@ -389,7 +376,7 @@ namespace OfCourseIStillLoveYou
             if (GUI.Button(new Rect(_windowWidth - 18, 2, 20, 16), "X", GUI.skin.button))
             {
                 Disable();
-                
+
                 return;
             }
 
@@ -444,12 +431,12 @@ namespace OfCourseIStillLoveYou
 
             var dataStyle = new GUIStyle(TelemetryGuiStyle)
             {
-                fontSize = (int) Mathf.Clamp(16 * TargetWindowScale, 9, 17),
+                fontSize = (int)Mathf.Clamp(16 * TargetWindowScale, 9, 17),
             };
 
             var targetRangeRect = new Rect(imageRect.x,
-                _adjCamImageHeightSize * 0.94f - (int) Mathf.Clamp(18 * TargetWindowScale, 9, 18), _adjCamImageWidthSize,
-                (int) Mathf.Clamp(18 * TargetWindowScale, 10, 18));
+                _adjCamImageHeightSize * 0.94f - (int)Mathf.Clamp(18 * TargetWindowScale, 9, 18), _adjCamImageWidthSize,
+                (int)Mathf.Clamp(18 * TargetWindowScale, 10, 18));
 
 
             GUI.Label(targetRangeRect, String.Concat(AltitudeString, Environment.NewLine, SpeedString), dataStyle);
@@ -476,9 +463,9 @@ namespace OfCourseIStillLoveYou
 
         public void CalculateSpeedAltitude()
         {
-            var altitudeInKm = (float) Math.Round(_hullcamera.vessel.altitude / 1000f, 1);
-            var speed = (int) Math.Round(_hullcamera.vessel.speed * 3.6f, 0);
-           
+            var altitudeInKm = (float)Math.Round(_hullcamera.vessel.altitude / 1000f, 1);
+            var speed = (int)Math.Round(_hullcamera.vessel.speed * 3.6f, 0);
+
             AltitudeString = string.Concat(Altitude, altitudeInKm.ToString("0.0"), Km);
             SpeedString = string.Concat(Speed, speed, Kmh);
         }
@@ -499,7 +486,7 @@ namespace OfCourseIStillLoveYou
         {
             if (MinimalUi)
             {
-                _windowWidth = _initialCamImageWidthSize* TargetWindowScale + 2 * Gap;
+                _windowWidth = _initialCamImageWidthSize * TargetWindowScale + 2 * Gap;
             }
             else
             {
@@ -613,6 +600,7 @@ namespace OfCourseIStillLoveYou
                 }
             }
         }
+
         private void LogCommandBufferStatus()
         {
             foreach (var cam in _cameras)
