@@ -17,6 +17,9 @@ namespace OfCourseIStillLoveYou
         private static MethodInfo _scatteringEnableMethod;
         private static MethodInfo _oceanEnableMethod;
 
+        private static int _lastLogFrame = -999;
+        private static bool _lastRenderingState = false;
+
         public static bool IsScattererAvailable
         {
             get
@@ -137,7 +140,8 @@ namespace OfCourseIStillLoveYou
 
             try
             {
-                bool anyEnabled = false;
+                bool scatteringEnabled = false;
+                bool oceanEnabled = false;
 
                 if (_scatteringCommandBufferType != null && _scatteringEnableMethod != null)
                 {
@@ -147,7 +151,7 @@ namespace OfCourseIStillLoveYou
                         try
                         {
                             _scatteringEnableMethod.Invoke(component, null);
-                            anyEnabled = true;
+                            scatteringEnabled = true;
                         }
                         catch (Exception ex)
                         {
@@ -164,7 +168,7 @@ namespace OfCourseIStillLoveYou
                         try
                         {
                             _oceanEnableMethod.Invoke(component, null);
-                            anyEnabled = true;
+                            oceanEnabled = true;
                         }
                         catch (Exception ex)
                         {
@@ -173,9 +177,19 @@ namespace OfCourseIStillLoveYou
                     }
                 }
 
-                if (anyEnabled && Time.frameCount % 300 == 0)
+                bool isRendering = scatteringEnabled || oceanEnabled;
+                if ((isRendering != _lastRenderingState) || (isRendering && Time.frameCount - _lastLogFrame > 300))
                 {
-                    Debug.Log($"[OfCourseIStillLoveYou]: Enabled Scatterer components for {camera.name}");
+                    if (isRendering)
+                    {
+                        Debug.Log($"[OCISLY-Scatterer] Rendering on {camera.name} - Scattering:{scatteringEnabled} Ocean:{oceanEnabled}");
+                    }
+                    else if (_lastRenderingState)
+                    {
+                        Debug.Log($"[OCISLY-Scatterer] Stopped rendering on {camera.name}");
+                    }
+                    _lastRenderingState = isRendering;
+                    _lastLogFrame = Time.frameCount;
                 }
             }
             catch (Exception ex)
@@ -262,6 +276,36 @@ namespace OfCourseIStillLoveYou
             }
 
             return info;
+        }
+
+        public static void EnsureOceanRenderingSetup(Camera camera)
+        {
+            if (!IsScattererAvailable || camera == null)
+                return;
+
+            try
+            {
+                var oceanCommandBuffer = _oceanCommandBufferType != null ? camera.GetComponent(_oceanCommandBufferType) : null;
+
+                if (oceanCommandBuffer == null && _oceanCommandBufferType != null)
+                {
+                    Debug.LogWarning($"[OCISLY-Scatterer] No OceanCommandBuffer on {camera.name} - ocean may not render correctly");
+                }
+
+                var screenCopyType = _scattererAssembly?.GetType("Scatterer.ScreenCopyCommandBuffer");
+                if (screenCopyType != null)
+                {
+                    var screenCopy = camera.GetComponent(screenCopyType);
+                    if (screenCopy == null)
+                    {
+                        Debug.Log($"[OCISLY-Scatterer] No ScreenCopyCommandBuffer on {camera.name} - transparency may not work");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[OCISLY-Scatterer] Error checking ocean setup: {ex.Message}");
+            }
         }
     }
 }
