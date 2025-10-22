@@ -94,6 +94,7 @@ namespace OfCourseIStillLoveYou
                 if (camera != null && camera.enabled)
                 {
                     ScattererWrapper.ForceEnableScattererComponents(camera);
+                    ScattererOceanHelper.UpdateOceanForCamera(camera);
                 }
             }
 
@@ -330,6 +331,11 @@ namespace OfCourseIStillLoveYou
             Debug.Log($"[OCISLY] - _cameras[0].name = {_cameras[0].name}");
             Debug.Log($"[OCISLY] - _cameras[1].name = {_cameras[1].name}");
             Debug.Log($"[OCISLY] - _cameras[2].name = {_cameras[2].name}");
+
+            if (ScattererWrapper.IsScattererAvailable)
+            {
+                ScattererOceanHelper.FindOceanNode(_hullcamera.vessel.mainBody.name);
+            }
         }
 
         private void AddTufxPostProcessing()
