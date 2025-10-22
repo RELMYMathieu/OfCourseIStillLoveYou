@@ -202,14 +202,12 @@ namespace OfCourseIStillLoveYou
 
         private void SetCameras()
         {
-            // === NEAR CAMERA ===
+            // === NEAR CAMERA (Main rendering camera) ===
             var cam1Obj = new GameObject("OCISLY_NearCamera");
             var partNearCamera = cam1Obj.AddComponent<Camera>();
             var mainCamera = Camera.allCameras.FirstOrDefault(cam => cam.name == "Camera 00");
 
-            // Copy settings from main camera, then override name (CopyFrom copies everything including name)
             partNearCamera.CopyFrom(mainCamera);
-            partNearCamera.name = "jrNear";
 
             // Position camera at the hull camera location
             partNearCamera.transform.parent = _hullcamera.cameraTransformName.Length <= 0
@@ -225,8 +223,6 @@ namespace OfCourseIStillLoveYou
             partNearCamera.allowMSAA = true;
             partNearCamera.enabled = true;
 
-            Debug.Log($"[OCISLY] Created near camera: {partNearCamera.name} (GameObject: {cam1Obj.name})");
-
             _cameras[0] = partNearCamera;
             cam1Obj.AddComponent<CanvasHack>();
 
@@ -236,13 +232,12 @@ namespace OfCourseIStillLoveYou
             TufxWrapper.AddPostProcessing(partNearCamera);
             ParallaxWrapper.ApplyParallaxToCamera(partNearCamera, mainCamera);
 
-            // === SCALED SPACE CAMERA ===
+            // === SCALED SPACE CAMERA (Distant objects, planets) ===
             var cam2Obj = new GameObject("OCISLY_ScaledCamera");
             var partScaledCamera = cam2Obj.AddComponent<Camera>();
             var mainSkyCam = FindCamera("Camera ScaledSpace");
 
             partScaledCamera.CopyFrom(mainSkyCam);
-            partScaledCamera.name = "jrScaled";
 
             // Follow the main scaled space camera
             partScaledCamera.transform.parent = mainSkyCam.transform;
@@ -266,13 +261,12 @@ namespace OfCourseIStillLoveYou
             camRotator.NearCamera = partNearCamera;
             cam2Obj.AddComponent<CanvasHack>();
 
-            // === GALAXY CAMERA ===
+            // === GALAXY CAMERA (Skybox, stars) ===
             var galaxyCamObj = new GameObject("OCISLY_GalaxyCamera");
             var galaxyCam = galaxyCamObj.AddComponent<Camera>();
             var mainGalaxyCam = FindCamera("GalaxyCamera");
 
             galaxyCam.CopyFrom(mainGalaxyCam);
-            galaxyCam.name = "jrGalaxy";
 
             galaxyCam.transform.parent = mainGalaxyCam.transform;
             galaxyCam.transform.position = Vector3.zero;
@@ -312,7 +306,20 @@ namespace OfCourseIStillLoveYou
 
             _lastDebugModeState = DeferredWrapper.IsDebugModeEnabled();
 
+            // Initialize Scatterer ocean rendering
+            if (ScattererWrapper.IsScattererAvailable)
+            {
+                ScattererOceanHelper.FindOceanNode(_hullcamera.vessel.mainBody.name);
+            }
+
+            // === SET CAMERA NAMES (MUST BE LAST - CopyFrom overwrites names) ===
+            _cameras[0].name = "jrNear";
+            _cameras[1].name = "jrScaled";
+            _cameras[2].name = "jrGalaxy";
+
             // === DIAGNOSTIC LOGGING ===
+            Debug.Log($"[OCISLY] Created near camera: {_cameras[0].name} (GameObject: {cam1Obj.name})");
+
             Debug.Log("[OCISLY] === Main Camera Components ===");
             foreach (var component in mainCamera.GetComponents<Component>())
             {
@@ -332,16 +339,10 @@ namespace OfCourseIStillLoveYou
                 }
             }
 
-            Debug.Log("[OCISLY] Verifying camera names:");
+            Debug.Log("[OCISLY] Final camera names:");
             Debug.Log($"[OCISLY] - _cameras[0].name = {_cameras[0].name}");
             Debug.Log($"[OCISLY] - _cameras[1].name = {_cameras[1].name}");
             Debug.Log($"[OCISLY] - _cameras[2].name = {_cameras[2].name}");
-
-            // Initialize Scatterer ocean rendering
-            if (ScattererWrapper.IsScattererAvailable)
-            {
-                ScattererOceanHelper.FindOceanNode(_hullcamera.vessel.mainBody.name);
-            }
         }
 
         private void AddTufxPostProcessing()
