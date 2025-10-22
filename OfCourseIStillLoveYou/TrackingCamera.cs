@@ -202,21 +202,23 @@ namespace OfCourseIStillLoveYou
 
         private void SetCameras()
         {
+            // === NEAR CAMERA ===
             var cam1Obj = new GameObject("OCISLY_NearCamera");
             var partNearCamera = cam1Obj.AddComponent<Camera>();
-
             var mainCamera = Camera.allCameras.FirstOrDefault(cam => cam.name == "Camera 00");
+
+            // Copy settings from main camera, then override name (CopyFrom copies everything including name)
             partNearCamera.CopyFrom(mainCamera);
-
-
             partNearCamera.name = "jrNear";
-            cam1Obj.name = "OCISLY_NearCamera";
+
+            // Position camera at the hull camera location
             partNearCamera.transform.parent = _hullcamera.cameraTransformName.Length <= 0
                 ? _hullcamera.part.transform
                 : _hullcamera.part.FindModelTransform(_hullcamera.cameraTransformName);
-            partNearCamera.transform.localRotation =
-                Quaternion.LookRotation(_hullcamera.cameraForward, _hullcamera.cameraUp);
+            partNearCamera.transform.localRotation = Quaternion.LookRotation(_hullcamera.cameraForward, _hullcamera.cameraUp);
             partNearCamera.transform.localPosition = _hullcamera.cameraPosition;
+
+            // Configure render target
             partNearCamera.fieldOfView = 50;
             partNearCamera.targetTexture = TargetCamRenderTexture;
             partNearCamera.allowHDR = true;
@@ -226,19 +228,15 @@ namespace OfCourseIStillLoveYou
             Debug.Log($"[OCISLY] Created near camera: {partNearCamera.name} (GameObject: {cam1Obj.name})");
 
             _cameras[0] = partNearCamera;
-            _cameras[0].allowHDR = true;
             cam1Obj.AddComponent<CanvasHack>();
 
-            //Deferred rendering
+            // Apply rendering enhancements
             DeferredWrapper.EnableDeferredRendering(partNearCamera);
             DeferredWrapper.SyncDebugMode(partNearCamera);
-
-            //TUFX
-            AddTufxPostProcessing();
-
-            //Parallax for near camera
+            TufxWrapper.AddPostProcessing(partNearCamera);
             ParallaxWrapper.ApplyParallaxToCamera(partNearCamera, mainCamera);
 
+            // === SCALED SPACE CAMERA ===
             var cam2Obj = new GameObject("OCISLY_ScaledCamera");
             var partScaledCamera = cam2Obj.AddComponent<Camera>();
             var mainSkyCam = FindCamera("Camera ScaledSpace");
@@ -246,10 +244,12 @@ namespace OfCourseIStillLoveYou
             partScaledCamera.CopyFrom(mainSkyCam);
             partScaledCamera.name = "jrScaled";
 
+            // Follow the main scaled space camera
             partScaledCamera.transform.parent = mainSkyCam.transform;
             partScaledCamera.transform.localRotation = Quaternion.identity;
             partScaledCamera.transform.localPosition = Vector3.zero;
             partScaledCamera.transform.localScale = Vector3.one;
+
             partScaledCamera.fieldOfView = 50;
             partScaledCamera.targetTexture = TargetCamRenderTexture;
             partScaledCamera.allowHDR = true;
@@ -259,24 +259,26 @@ namespace OfCourseIStillLoveYou
 
             DeferredWrapper.EnableDeferredRendering(partScaledCamera);
             DeferredWrapper.SyncDebugMode(partScaledCamera);
-
             ParallaxWrapper.ApplyParallaxToCamera(partScaledCamera, mainSkyCam);
 
+            // Sync rotation with near camera
             var camRotator = cam2Obj.AddComponent<TgpCamRotator>();
             camRotator.NearCamera = partNearCamera;
             cam2Obj.AddComponent<CanvasHack>();
 
-            //galaxy camera
+            // === GALAXY CAMERA ===
             var galaxyCamObj = new GameObject("OCISLY_GalaxyCamera");
             var galaxyCam = galaxyCamObj.AddComponent<Camera>();
             var mainGalaxyCam = FindCamera("GalaxyCamera");
 
             galaxyCam.CopyFrom(mainGalaxyCam);
             galaxyCam.name = "jrGalaxy";
+
             galaxyCam.transform.parent = mainGalaxyCam.transform;
             galaxyCam.transform.position = Vector3.zero;
             galaxyCam.transform.localRotation = Quaternion.identity;
             galaxyCam.transform.localScale = Vector3.one;
+
             galaxyCam.fieldOfView = 50;
             galaxyCam.targetTexture = TargetCamRenderTexture;
             galaxyCam.allowHDR = true;
@@ -286,23 +288,31 @@ namespace OfCourseIStillLoveYou
 
             DeferredWrapper.EnableDeferredRendering(galaxyCam);
             DeferredWrapper.SyncDebugMode(galaxyCam);
-
             ParallaxWrapper.ApplyParallaxToCamera(galaxyCam, mainGalaxyCam);
-
-            //Scatterer for all cameras
-            ScattererWrapper.ApplyScattererToCamera(partNearCamera);
-            ScattererWrapper.ApplyScattererToCamera(partScaledCamera);
-            ScattererWrapper.ApplyScattererToCamera(galaxyCam);
 
             var camRotatorgalaxy = galaxyCamObj.AddComponent<TgpCamRotator>();
             camRotatorgalaxy.NearCamera = partNearCamera;
             galaxyCamObj.AddComponent<CanvasHack>();
 
+            // === VISUAL EFFECTS (Apply to all cameras) ===
+
+            // Scatterer (atmosphere, ocean)
+            ScattererWrapper.ApplyScattererToCamera(partNearCamera);
+            ScattererWrapper.ApplyScattererToCamera(partScaledCamera);
+            ScattererWrapper.ApplyScattererToCamera(galaxyCam);
+
+            // EVE (clouds, water effects)
+            EVEWrapper.ApplyEVEToCamera(partNearCamera, mainCamera);
+            EVEWrapper.ApplyEVEToCamera(partScaledCamera, mainSkyCam);
+            EVEWrapper.ApplyEVEToCamera(galaxyCam, mainGalaxyCam);
+
+            // Start with cameras disabled (they toggle on/off each frame)
             foreach (var t in _cameras)
                 t.enabled = false;
 
             _lastDebugModeState = DeferredWrapper.IsDebugModeEnabled();
 
+            // === DIAGNOSTIC LOGGING ===
             Debug.Log("[OCISLY] === Main Camera Components ===");
             foreach (var component in mainCamera.GetComponents<Component>())
             {
@@ -322,16 +332,12 @@ namespace OfCourseIStillLoveYou
                 }
             }
 
-            //EVE for all cameras
-            EVEWrapper.ApplyEVEToCamera(partNearCamera, mainCamera);
-            EVEWrapper.ApplyEVEToCamera(partScaledCamera, mainSkyCam);
-            EVEWrapper.ApplyEVEToCamera(galaxyCam, mainGalaxyCam);
-
             Debug.Log("[OCISLY] Verifying camera names:");
             Debug.Log($"[OCISLY] - _cameras[0].name = {_cameras[0].name}");
             Debug.Log($"[OCISLY] - _cameras[1].name = {_cameras[1].name}");
             Debug.Log($"[OCISLY] - _cameras[2].name = {_cameras[2].name}");
 
+            // Initialize Scatterer ocean rendering
             if (ScattererWrapper.IsScattererAvailable)
             {
                 ScattererOceanHelper.FindOceanNode(_hullcamera.vessel.mainBody.name);
