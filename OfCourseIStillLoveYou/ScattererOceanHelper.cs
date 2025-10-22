@@ -130,7 +130,8 @@ namespace OfCourseIStillLoveYou
                                 if (oceanMaterial != null)
                                 {
                                     // Call updateCameraSpecificUniforms
-                                    _updateCameraSpecificUniformsMethod.Invoke(hook, new object[] { oceanMaterial, camera });
+                                    // This may be breaking the render pipeline, so it's commented out for now
+                                    //_updateCameraSpecificUniformsMethod.Invoke(hook, new object[] { oceanMaterial, camera });
                                 }
                             }
                             break;

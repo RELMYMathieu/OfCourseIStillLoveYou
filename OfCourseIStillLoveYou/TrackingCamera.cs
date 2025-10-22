@@ -569,7 +569,7 @@ namespace OfCourseIStillLoveYou
                 Debug.Log($"[OCISLY] Enabled: {cam.enabled}, Layer 9: {(cam.cullingMask & (1 << 9)) != 0}, Layer 15: {(cam.cullingMask & (1 << 15)) != 0}");
 
                 Debug.Log(ScattererWrapper.GetDiagnosticInfo(cam));
-                ScattererWrapper.EnsureOceanRenderingSetup(cam);
+                //ScattererWrapper.EnsureOceanRenderingSetup(cam);
             }
         }
 
