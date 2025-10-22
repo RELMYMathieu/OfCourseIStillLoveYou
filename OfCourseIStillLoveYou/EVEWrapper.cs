@@ -99,7 +99,7 @@ namespace OfCourseIStillLoveYou
                 AddEVEComponent(targetCamera, referenceCamera, _volumetricCloudsRendererType, "VolumetricCloudsRenderer");
                 AddEVEComponent(targetCamera, referenceCamera, _particleFieldRendererType, "ParticleFieldRenderer");
 
-                CopyEVECommandBuffers(referenceCamera, targetCamera);
+                //CopyEVECommandBuffers(referenceCamera, targetCamera);
 
                 Debug.Log($"[OfCourseIStillLoveYou]: Applied EVE water effects to camera {targetCamera.name}");
             }
@@ -235,6 +235,7 @@ namespace OfCourseIStillLoveYou
                 RemoveComponentIfExists(camera, _volumetricCloudsRendererType);
                 RemoveComponentIfExists(camera, _particleFieldRendererType);
 
+                /*
                 var events = new[]
                 {
                     CameraEvent.BeforeReflections,
@@ -256,6 +257,7 @@ namespace OfCourseIStillLoveYou
                         }
                     }
                 }
+                */
 
                 Debug.Log($"[OfCourseIStillLoveYou]: Removed EVE effects from camera {camera.name}");
             }
