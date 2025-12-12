@@ -2,24 +2,277 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="800" Width="800" Height="800"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="1000" Width="1000" Height="562" MinWidth="400" MinHeight="400"
         x:Class="OfCourseIStillLoveYou.DesktopClient.MainWindow"
-        Title="OfCourseIStillLoveYou.DesktopClient" Name="MainWindow" SystemDecorations="None" CanResize="True" Closing="Window_OnClosing" >
+        ExtendClientAreaToDecorationsHint="True"
+        Title="OfCourseIStillLoveYou.DesktopClient" Name="RootWindow" SystemDecorations="None" CanResize="True" Closing="Window_OnClosing" >
 
 
   <Panel Background="Black"  >
-    <Image Name="ImgCameraTexture" PointerPressed="InputElement_OnPointerPressed" Stretch="Uniform" Source="/Assets/OfCourseIStillLoveYou.png"   ClipToBounds="true"  DoubleTapped="ImgCameraTexture_OnDoubleTapped" ></Image>
-    <DockPanel  Margin="10" ClipToBounds="True" >
-      <Label Name="LabelCameras" Content="SELECT A CAMERA" Foreground="White" FontSize="14" FontFamily="Bahnschrift Semibold" FontWeight="400"></Label>
-      <ComboBox Name="CbCameras" Margin="5,0,0,0" MinWidth="150" FontFamily="Bahnschrift Semibold"></ComboBox>
-    </DockPanel>
+    <Canvas Name="mc" Height="800" Width="800">
+      <Image Name="background" Height="800" Width="800" HorizontalAlignment="Center" VerticalAlignment="Center" Source="/Assets/background.jpg"></Image>
+      <Grid Name="c1" Width="400" Height="400" PointerPressed="InputElement_OnPointerPressed" DoubleTapped="ImgCameraTexture_OnDoubleTapped">
+        <Image Name="imgCameraTexture1"
+              Source="/Assets/placeholder.png"
+              Stretch="Fill"/>
+        <Grid VerticalAlignment="Bottom"
+              HorizontalAlignment="Stretch" >
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Background="#80000000" Grid.Column="0" Padding="0,5,0,1">
+              <StackPanel Name="TextInfoSpeed1"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Stretch"
+                        Spacing="0">
+                <StackPanel.Styles>
+                    <Style Selector="TextBlock">
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="FontFamily" Value="Bahnschrift Semibold"/>
+                        <Setter Property="TextAlignment" Value="Center"/>
+                    </Style>
+                </StackPanel.Styles>
+              </StackPanel>
+            </Border>
+            <Border Background="#80000000" Grid.Column="1" Padding="0,5,0,1">
+              <StackPanel Name="TextInfoAlt1"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Stretch"
+                        Spacing="0">
+                <StackPanel.Styles>
+                    <Style Selector="TextBlock">
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="FontFamily" Value="Bahnschrift Semibold"/>
+                        <Setter Property="TextAlignment" Value="Center"/>
+                    </Style>
+                </StackPanel.Styles>
+              </StackPanel>
+            </Border>
+        </Grid>
+      </Grid>
+      <Grid Name="c2" Width="400" Height="400" PointerPressed="InputElement_OnPointerPressed" DoubleTapped="ImgCameraTexture_OnDoubleTapped">
+        <Image Name="imgCameraTexture2"
+              Source="/Assets/placeholder.png"
+              Stretch="Fill"/>
+        <Grid VerticalAlignment="Bottom"
+              HorizontalAlignment="Stretch" >
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Background="#80000000" Grid.Column="0" Padding="0,5,0,1">
+              <StackPanel Name="TextInfoSpeed2"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Stretch"
+                        Spacing="0">
+                <StackPanel.Styles>
+                    <Style Selector="TextBlock">
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="FontFamily" Value="Bahnschrift Semibold"/>
+                        <Setter Property="TextAlignment" Value="Center"/>
+                    </Style>
+                </StackPanel.Styles>
+              </StackPanel>
+            </Border>
+            <Border Background="#80000000" Grid.Column="1" Padding="0,5,0,1">
+              <StackPanel Name="TextInfoAlt2"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Stretch"
+                        Spacing="0">
+                <StackPanel.Styles>
+                    <Style Selector="TextBlock">
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="FontFamily" Value="Bahnschrift Semibold"/>
+                        <Setter Property="TextAlignment" Value="Center"/>
+                    </Style>
+                </StackPanel.Styles>
+              </StackPanel>
+            </Border>
+        </Grid>
+      </Grid>
+      <Grid Name="c5" Width="400" Height="400" PointerPressed="InputElement_OnPointerPressed" DoubleTapped="ImgCameraTexture_OnDoubleTapped">
+        <Image Name="imgCameraTexture5"
+              Source="/Assets/placeholder.png"
+              Stretch="Fill"/>
+        <Grid VerticalAlignment="Bottom"
+              HorizontalAlignment="Stretch" >
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Background="#80000000" Grid.Column="0" Padding="0,5,0,1">
+              <StackPanel Name="TextInfoSpeed5"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Stretch"
+                        Spacing="0">
+                <StackPanel.Styles>
+                    <Style Selector="TextBlock">
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="FontFamily" Value="Bahnschrift Semibold"/>
+                        <Setter Property="TextAlignment" Value="Center"/>
+                    </Style>
+                </StackPanel.Styles>
+              </StackPanel>
+            </Border>
+            <Border Background="#80000000" Grid.Column="1" Padding="0,5,0,1">
+              <StackPanel Name="TextInfoAlt5"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Stretch"
+                        Spacing="0">
+                <StackPanel.Styles>
+                    <Style Selector="TextBlock">
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="FontFamily" Value="Bahnschrift Semibold"/>
+                        <Setter Property="TextAlignment" Value="Center"/>
+                    </Style>
+                </StackPanel.Styles>
+              </StackPanel>
+            </Border>
+        </Grid>
+      </Grid>
+      <Grid Name="c3" Width="400" Height="400" PointerPressed="InputElement_OnPointerPressed" DoubleTapped="ImgCameraTexture_OnDoubleTapped">
+        <Image Name="imgCameraTexture3"
+              Source="/Assets/placeholder.png"
+              Stretch="Fill"/>
+        <Grid VerticalAlignment="Bottom"
+              HorizontalAlignment="Stretch" >
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Background="#80000000" Grid.Column="0" Padding="0,5,0,1">
+              <StackPanel Name="TextInfoSpeed3"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Stretch"
+                        Spacing="0">
+                <StackPanel.Styles>
+                    <Style Selector="TextBlock">
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="FontFamily" Value="Bahnschrift Semibold"/>
+                        <Setter Property="TextAlignment" Value="Center"/>
+                    </Style>
+                </StackPanel.Styles>
+              </StackPanel>
+            </Border>
+            <Border Background="#80000000" Grid.Column="1" Padding="0,5,0,1">
+              <StackPanel Name="TextInfoAlt3"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Stretch"
+                        Spacing="0">
+                <StackPanel.Styles>
+                    <Style Selector="TextBlock">
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="FontFamily" Value="Bahnschrift Semibold"/>
+                        <Setter Property="TextAlignment" Value="Center"/>
+                    </Style>
+                </StackPanel.Styles>
+              </StackPanel>
+            </Border>
+        </Grid>
+      </Grid>
+      <Grid Name="c4" Width="400" Height="400" PointerPressed="InputElement_OnPointerPressed" DoubleTapped="ImgCameraTexture_OnDoubleTapped">
+        <Image Name="imgCameraTexture4"
+              Source="/Assets/placeholder.png"
+              Stretch="Fill"/>
+        <Grid VerticalAlignment="Bottom"
+              HorizontalAlignment="Stretch" >
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Background="#80000000" Grid.Column="0" Padding="0,5,0,1">
+              <StackPanel Name="TextInfoSpeed4"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Stretch"
+                        Spacing="0">
+                <StackPanel.Styles>
+                    <Style Selector="TextBlock">
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="FontFamily" Value="Bahnschrift Semibold"/>
+                        <Setter Property="TextAlignment" Value="Center"/>
+                    </Style>
+                </StackPanel.Styles>
+              </StackPanel>
+            </Border>
+            <Border Background="#80000000" Grid.Column="1" Padding="0,5,0,1">
+              <StackPanel Name="TextInfoAlt4"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Stretch"
+                        Spacing="0">
+                <StackPanel.Styles>
+                    <Style Selector="TextBlock">
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="FontFamily" Value="Bahnschrift Semibold"/>
+                        <Setter Property="TextAlignment" Value="Center"/>
+                    </Style>
+                </StackPanel.Styles>
+              </StackPanel>
+            </Border>
+        </Grid>
+      </Grid>
+      <Grid Name="c6" Width="400" Height="400" PointerPressed="InputElement_OnPointerPressed" DoubleTapped="ImgCameraTexture_OnDoubleTapped">
+        <Image Name="imgCameraTexture6"
+              Source="/Assets/placeholder.png"
+              Stretch="Fill"/>
+        <Grid VerticalAlignment="Bottom"
+              HorizontalAlignment="Stretch" >
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Background="#80000000" Grid.Column="0" Padding="0,5,0,1">
+              <StackPanel Name="TextInfoSpeed6"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Stretch"
+                        Spacing="0">
+                <StackPanel.Styles>
+                    <Style Selector="TextBlock">
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="FontFamily" Value="Bahnschrift Semibold"/>
+                        <Setter Property="TextAlignment" Value="Center"/>
+                    </Style>
+                </StackPanel.Styles>
+              </StackPanel>
+            </Border>
+            <Border Background="#80000000" Grid.Column="1" Padding="0,5,0,1">
+              <StackPanel Name="TextInfoAlt6"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Stretch"
+                        Spacing="0">
+                <StackPanel.Styles>
+                    <Style Selector="TextBlock">
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="FontFamily" Value="Bahnschrift Semibold"/>
+                        <Setter Property="TextAlignment" Value="Center"/>
+                    </Style>
+                </StackPanel.Styles>
+              </StackPanel>
+            </Border>
+        </Grid>
+      </Grid>
+
+
+      <Canvas Name="ic" Height="400" Width="800">
+        <Canvas Name="im7c" Height="400" Width="400">
+        </Canvas>
+        <Canvas Name="im8c" Height="32" Width="32">
+          <Image Name="ImgClose" Height="32" Width="32" HorizontalAlignment="Center" VerticalAlignment="Center" Source="/Assets/close.png" Tapped="ImgClose_OnTapped"></Image>
+        </Canvas>
+        <Canvas Name="im9c" Height="32" Width="32">
+          <Image Name="ImgResize" Height="32" Width="32" HorizontalAlignment="Center" VerticalAlignment="Center" Source="/Assets/resizeSquare.png" PointerPressed="ImgResize_OnPointerPressed" PointerReleased="ImgResize_OnPointerReleased" PointerMoved="ImgResize_OnPointerMoved"></Image>
+        </Canvas>
+        <Canvas Name="i1" Height="32" Width="32">
+          <TextBlock Name="TextInfo" Text="Initialization..." Background="#80000000" Foreground="White" TextWrapping="Wrap" FontFamily="Bahnschrift Semibold" TextAlignment="Center" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled"></TextBlock>
+        </Canvas>
+      </Canvas>
+    </Canvas>
 
     <Label Foreground="White" FontSize="34" Margin="50" FontFamily="Bahnschrift Semibold" FontWeight="400" VerticalAlignment="Bottom" HorizontalAlignment="Center">
-        <TextBlock Name="TextInfo" Text="SPEEED ALTITUDE" TextWrapping="Wrap" MaxWidth="400" FontFamily="Bahnschrift Semibold"  TextAlignment="Center" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled"></TextBlock>
+
     </Label>
-      
-      <Image Name="ImgResize" Height="32" Width="32" HorizontalAlignment="Right" VerticalAlignment="Bottom" Source="/Assets/resizeSquare.png" PointerPressed="ImgResize_OnPointerPressed"></Image>
-      <Image Name="ImgClose" Height="32" Width="32" HorizontalAlignment="Right" VerticalAlignment="Top" Source="/Assets/close.png" Tapped="ImgClose_OnTapped"></Image>
+
+
   </Panel>
 
 </Window>

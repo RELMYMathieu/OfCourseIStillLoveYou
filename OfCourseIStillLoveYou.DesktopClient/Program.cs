@@ -1,4 +1,9 @@
 using Avalonia;
+using Avalonia.ReactiveUI;
+
+#if OS_IS_WINDOWS
+using Avalonia.Win32;
+#endif
 
 namespace OfCourseIStillLoveYou.DesktopClient
 {
@@ -14,7 +19,15 @@ namespace OfCourseIStillLoveYou.DesktopClient
         public static AppBuilder BuildAvaloniaApp()
             => AppBuilder.Configure<App>()
                 .UsePlatformDetect()
-                .LogToTrace();
+                .LogToTrace()
+                .UseSkia()
+#if OS_IS_WINDOWS
+                .With(new Win32PlatformOptions
+                {
+                    RenderingMode = new[] { Win32RenderingMode.Software }
+                })
+#endif
+                .UseReactiveUI();
 
 
 

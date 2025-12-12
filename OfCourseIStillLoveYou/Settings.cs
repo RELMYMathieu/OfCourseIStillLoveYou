@@ -17,6 +17,8 @@ namespace OfCourseIStillLoveYou
 
         public static int Height { get; set; }
 
+        public static int FpsLimit { get; set; }
+
         void Awake()
         {
             LoadConfig();
@@ -37,6 +39,7 @@ namespace OfCourseIStillLoveYou
                 Port = int.Parse(settings.GetValue("Port"));
                 Width = int.Parse(settings.GetValue("Width"));
                 Height = int.Parse(settings.GetValue("Height"));
+                FpsLimit = int.Parse(settings.GetValue("FpsLimit"));
 
             }
             catch (Exception ex)

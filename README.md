@@ -7,7 +7,8 @@
 
 # OfCourseIStillLoveYou (experimental fork - not being updated - moving to new repo soon!)
 
-KSP mod to display hullcam cameras views on different GUI inside or outside the game using a Desktop app and Server app.
+Forked from https://github.com/jrodrigv/OfCourseIStillLoveYou
+Provides adaptive layout up to six cameras. Check the main mod repository for mod installation and requirements.
 
 Fork of the mod OfCourseIStillLoveYou by jrodrigrv.
 
@@ -19,7 +20,7 @@ Fork of the mod OfCourseIStillLoveYou by jrodrigrv.
 ## Highly recommended mods:
 * Physics Range Extender
 * Scatterer 0.0838 or newer https://github.com/LGhassen/Scatterer/releases
-* If you want to use TUFX you need to use this version -> TUFX JR edition https://github.com/jrodrigv/TUFX/releases 
+* If you want to use TUFX you need to use this version -> TUFX JR edition https://github.com/jrodrigv/TUFX/releases
 
 ## Mod Installation:
 * Download the zip file for Windows, Linux or Mac.
@@ -53,9 +54,3 @@ Inside the settings.cfg file you can modify the Cameras resolution and server co
 * To move the window, click and drag from the camera image view
 * To resise the window, click and drag from the resize texture corner (bottom - right corner)
 * To close the UI, press the "X" button
-
-## Mod usage
-
-Take a look to this video tutorial :)
-
-https://youtu.be/OV0Z4xpFYlA

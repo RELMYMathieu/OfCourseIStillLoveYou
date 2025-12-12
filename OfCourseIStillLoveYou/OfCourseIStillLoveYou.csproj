@@ -46,6 +46,10 @@
       <HintPath>..\Dependencies\KSPAssets.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Scatterer">
+      <HintPath>..\Dependencies\Scatterer.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Drawing" />
     <Reference Include="UnityEngine">
@@ -112,12 +116,14 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CameraFilter.cs" />
     <Compile Include="DeferredWrapper.cs" />
     <Compile Include="EVEWrapper.cs" />
     <Compile Include="FireflyWrapper.cs" />
     <Compile Include="ParallaxWrapper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ScattererOceanHelper.cs" />
+    <Compile Include="ScattererSunFlare.cs" />
     <Compile Include="ScattererWrapper.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="canvasHack.cs" />
@@ -137,6 +143,8 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent>
+      chcp 65001 &gt; nul
+
 			SET ModName=OfCourseIStillLoveYou
 
 			@echo Cleaning Distribution folder...
@@ -153,18 +161,14 @@
   </PropertyGroup>
   <PropertyGroup>
     <PostBuildEvent>
+      chcp 65001 &gt; nul
+
 			@echo $(Targetname)
 			SET ModName=OfCourseIStillLoveYou
 
 			rem Get paths from _LocalDev
 			set GIT_PATH=$(SolutionDir)
 			set GIT_PATH=%25GIT_PATH:OfCourseIStillLoveYou\=%25
-
-			@echo Reading local dev configuration...
-			set /p KSP_DIR=&lt;"%25GIT_PATH%25_LocalDev\ksp_dir.txt"
-			set /p PDB2MDB_EXE=&lt;"%25GIT_PATH%25_LocalDev\pdb2mdb_exe.txt"
-			set /p ZA_DIR=&lt;"%25GIT_PATH%25_LocalDev\7za_dir.txt"
-			set /p DIST_DIR=&lt;"%25GIT_PATH%25_LocalDev\dist_dir.txt"
 
 			@echo ========================================
 			@echo Copying assemblies to Distribution...
@@ -177,10 +181,10 @@
 			xcopy /Y "$(TargetDir)OfCourseIStillLoveYou.Client.pdb" "$(ProjectDir)Distribution\GameData\%25ModName%25\Plugins\"
 
 			@echo Copying gRPC dependencies...
-			xcopy /Y "..\Dependencies\win\grpc_csharp_ext.dll" "$(ProjectDir)Distribution\GameData\%25ModName%25\Plugins\"
-			xcopy /Y "..\Dependencies\Google.Protobuf.dll" "$(ProjectDir)Distribution\GameData\%25ModName%25\Plugins\"
-			xcopy /Y "..\Dependencies\Grpc.Core.exe" "$(ProjectDir)Distribution\GameData\%25ModName%25\Plugins\"
-			xcopy /Y "..\Dependencies\Grpc.Core.Api.dll" "$(ProjectDir)Distribution\GameData\%25ModName%25\Plugins\"
+			xcopy /Y "$(ProjectDir)..\Dependencies\win\grpc_csharp_ext.dll" "$(ProjectDir)Distribution\GameData\%25ModName%25\Plugins\"
+			xcopy /Y "$(ProjectDir)..\Dependencies\Google.Protobuf.dll" "$(ProjectDir)Distribution\GameData\%25ModName%25\Plugins\"
+			xcopy /Y "$(ProjectDir)..\Dependencies\Grpc.Core.exe" "$(ProjectDir)Distribution\GameData\%25ModName%25\Plugins\"
+			xcopy /Y "$(ProjectDir)..\Dependencies\Grpc.Core.Api.dll" "$(ProjectDir)Distribution\GameData\%25ModName%25\Plugins\"
 
 			@echo ========================================
 			@echo Copying textures and config files...
@@ -197,22 +201,6 @@
 			) else if exist "$(ProjectDir)settings.cfg" (
 			xcopy /Y "$(ProjectDir)settings.cfg" "$(ProjectDir)Distribution\GameData\%25ModName%25\"
 			)
-
-			@echo ========================================
-			@echo Creating release package...
-			@echo ========================================
-
-			@echo Deleting previous builds...
-			if exist "%25DIST_DIR%25\%25ModName%25.*.zip" del "%25DIST_DIR%25\%25ModName%25.*.zip"
-
-			@echo Packaging new build...
-			call "%25ZA_DIR%25\7za.exe" a -tzip -r "%25DIST_DIR%25\%25ModName%25.@(VersionNumber)_%25DATE:~4,2%25%25DATE:~7,2%25%25DATE:~10,4%25%25time:~0,2%25%25time:~3,2%25.zip" "$(ProjectDir)Distribution\*.*"
-
-			@echo ========================================
-			@echo Deploying to KSP test environment...
-			@echo ========================================
-
-			xcopy /E /Y "$(ProjectDir)Distribution\GameData" "%25KSP_DIR%25\GameData"
 
 			@echo ========================================
 			@echo Build/deploy complete!

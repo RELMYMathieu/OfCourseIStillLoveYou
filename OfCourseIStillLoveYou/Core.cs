@@ -14,6 +14,9 @@ namespace OfCourseIStillLoveYou
 
         private static bool _lastDebugModeState = false;
 
+        private float _cameraFpsLimit = Settings.FpsLimit > 0 ? Settings.FpsLimit : 24;
+        public float _lastUpdateTime = 0f;
+
         private void Awake()
         {
             GrpcClient.ConnectToServer(Settings.EndPoint, Settings.Port);
@@ -40,13 +43,30 @@ namespace OfCourseIStillLoveYou
 
         void Update()
         {
-            ToggleRender();
+            if (Time.time > _lastUpdateTime + (1f / _cameraFpsLimit))
+            {
+                RenderCameras();
+            }
         }
 
         void LateUpdate()
         {
-            Refresh();
-            SyncDebugMode();
+            UpdateTelemetry();
+
+            if (Time.time > _lastUpdateTime + (1f / _cameraFpsLimit))
+            {
+                Refresh();
+                _lastUpdateTime = Time.time;
+            }
+        }
+
+        private void UpdateTelemetry()
+        {
+            foreach (var trackedCamerasValue in TrackedCameras.Values.Where(trackedCamerasValue => trackedCamerasValue.Enabled))
+            {
+                trackedCamerasValue.CalculateSpeedAltitude();
+                trackedCamerasValue.UpdateTargetText();
+            }
         }
 
         private static void SyncDebugMode()
@@ -73,22 +93,20 @@ namespace OfCourseIStillLoveYou
         {
             foreach (var trackedCamerasValue in TrackedCameras.Values.Where(trackedCamerasValue => trackedCamerasValue.Enabled))
             {
-                if (!trackedCamerasValue.OddFrames) continue;
-
-                trackedCamerasValue.CalculateSpeedAltitude();
-                trackedCamerasValue.SendCameraImage();
+                trackedCamerasValue.LateUpdateCameras();
 
                 trackedCamerasValue.RenderParallaxScatters();
-
                 trackedCamerasValue.UpdateFireflyEffects();
+
+                trackedCamerasValue.SendCameraImage();
             }
         }
 
-        private void ToggleRender()
+        private void RenderCameras()
         {
             foreach (var trackedCamerasValue in TrackedCameras.Values.Where(trackedCamerasValue => trackedCamerasValue.Enabled))
             {
-                trackedCamerasValue.ToogleCameras();
+                trackedCamerasValue.UpdateCameras();
             }
         }
     }
