@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Drawing.Printing;
 using System.Linq;
 using System.Threading.Tasks;
-using HullcamVDS;
-using OfCourseIStillLoveYou.Client;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.UI;
+using HullcamVDS;
+using OfCourseIStillLoveYou.Client;
 
 namespace OfCourseIStillLoveYou
 {
@@ -17,8 +20,10 @@ namespace OfCourseIStillLoveYou
         private const float MaxCameraSize = 360;
         private const string Altitude = "ALTITUDE: ", Km = " KM", Speed = "SPEED: ", Kmh = " KM/H";
 
+        private bool HasTargetData = false;
+
         private static readonly float controlsStartY = 22;
-        private static readonly Font TelemetryFont = Font.CreateDynamicFontFromOSFont("Bahnschrift Semibold", 17);
+        private static readonly Font TelemetryFont = Font.CreateDynamicFontFromOSFont("Bahnschrift Semibold", 16);
 
         private static readonly GUIStyle ButtonStyle = new GUIStyle(HighLogic.Skin.button)
         { fontSize = 10, wordWrap = true };
@@ -27,6 +32,20 @@ namespace OfCourseIStillLoveYou
         private static readonly GUIStyle TelemetryGuiStyle = new GUIStyle()
         { alignment = TextAnchor.MiddleCenter, normal = new GUIStyleState() { textColor = Color.white }, fontStyle = FontStyle.Bold, font = TelemetryFont };
 
+
+        public string targetName;
+        public string currentMode;
+
+        public double targetDistance = double.NaN;
+        public double targetRelVelocity = double.NaN;
+        public double targetVelX;
+        public double targetVelY;
+        public double targetVelZ;
+
+        private Canvas _uiCanvas;
+        private Text _targetDataText;
+
+        HullcamVDS.CameraFilter.eCameraMode cameraMode;
 
         public static Texture2D ResizeTexture =
             GameDatabase.Instance.GetTexture("OfCourseIStillLoveYou/Textures/" + "resizeSquare", false);
@@ -39,7 +58,7 @@ namespace OfCourseIStillLoveYou
         private float _adjCamImageWidthSize = 360;
         private float _adjCamImageHeightSize = 360;
 
-        private readonly Camera[] _cameras = new Camera[3];
+        private readonly List<Camera> _cameras = new List<Camera>();
         private float _windowHeight;
 
         private Rect _windowRect;
@@ -47,11 +66,12 @@ namespace OfCourseIStillLoveYou
         public RenderTexture TargetCamRenderTexture;
         private readonly Texture2D _texture2D = new Texture2D(Settings.Width, Settings.Height, TextureFormat.ARGB32, false);
 
-        public bool OddFrames;
         private byte[] _jpgTexture;
 
         private bool _lastDebugModeState = false;
         private bool _diagnosticRun = false;
+
+        public PerCameraSunflareManager sunflareManager; GameObject sunflareManagerGO;
 
         public void SyncDebugMode(bool debugModeEnabled)
         {
@@ -73,38 +93,41 @@ namespace OfCourseIStillLoveYou
             _lastDebugModeState = debugModeEnabled;
         }
 
-        public void ToogleCameras()
+        public void UpdateCameras()
         {
-            OddFrames = !OddFrames;
-            foreach (var camera in this._cameras)
-            {
-                if (camera != null)
-                {
-                    camera.enabled = OddFrames;
-                }
-            }
+            const int nearCameraAtmosphereLayersMask = (1 << 9) | (1 << 10) | (1 << 15);
+
+            if (MapView.MapIsEnabled)
+                _cameras[0].cullingMask &= ~nearCameraAtmosphereLayersMask;
+            else
+                _cameras[0].cullingMask |= nearCameraAtmosphereLayersMask;
+
+            for (int i = _cameras.Count - 1; i >= 0; --i)
+                if (_cameras[i] != null)
+                    _cameras[i].Render();
+
+            if (sunflareManager != null)
+                sunflareManager.UpdateFlares();
+        }
+
+
+        public void LateUpdateCameras()
+        {
+            // for (int i = _cameras.Count - 1; i >= 0; --i)
+            // {
+            //     if (_cameras[i] != null)
+            //     {
+            //         ScattererWrapper.ForceEnableScattererComponents(_cameras[i]);
+            //         ScattererOceanHelper.UpdateOceanForCamera(_cameras[i]);
+            //     }
+            // }
+
+            // ScattererWrapper.ForceEnableScattererComponents(_cameras[0]);
+            // ScattererOceanHelper.UpdateOceanForCamera(_cameras[0]);
         }
 
         public void SendCameraImage()
         {
-            if (!OddFrames) return;
-
-            foreach (var camera in _cameras)
-            {
-                if (camera != null && camera.enabled)
-                {
-                    ScattererWrapper.ForceEnableScattererComponents(camera);
-                    ScattererOceanHelper.UpdateOceanForCamera(camera);
-                }
-            }
-
-            if (Time.frameCount % 300 == 0)
-            {
-                LogDetailedCameraStatus();
-                Debug.Log("[OCISLY] ===== Periodic Status Check =====");
-                LogCommandBufferStatus();
-            }
-
             if (!StreamingEnabled) return;
 
             Graphics.CopyTexture(TargetCamRenderTexture, _texture2D);
@@ -147,25 +170,28 @@ namespace OfCourseIStillLoveYou
                 _windowHeight);
             SetCameras();
 
+            ResizeTargetWindow();
+
             Enabled = true;
         }
 
         private void CalculateInitialSize()
         {
-            if (Settings.Width > Settings.Height)
-            {
-                _adjCamImageHeightSize = Settings.Height * MaxCameraSize / Settings.Width;
-                _initialCamImageHeightSize = _adjCamImageHeightSize;
-                _adjCamImageWidthSize = 360;
+            // if (Settings.Width > Settings.Height)
+            // {
+            //     _adjCamImageHeightSize = Settings.Height * MaxCameraSize / Settings.Width;
+            //     _initialCamImageHeightSize = _adjCamImageHeightSize;
+            //     _adjCamImageWidthSize = 360;
+            // }
+            // else
+            // {
+            //     _adjCamImageWidthSize = Settings.Width * MaxCameraSize / Settings.Height;
+            //     _initialCamImageWidthSize = _adjCamImageWidthSize;
+            //     _adjCamImageHeightSize = 360;
+            // }
 
-
-            }
-            else
-            {
-                _adjCamImageWidthSize = Settings.Width * MaxCameraSize / Settings.Height;
-                _initialCamImageWidthSize = _adjCamImageWidthSize;
-                _adjCamImageHeightSize = 360;
-            }
+            _initialCamImageWidthSize = _initialCamImageHeightSize =
+                _adjCamImageWidthSize = _adjCamImageHeightSize = MaxCameraSize;
 
             Debug.Log($"OCISLY:_adjCamImageHeightSize = {_adjCamImageHeightSize} _adjCamImageWidthSize = {_adjCamImageWidthSize}");
         }
@@ -190,14 +216,14 @@ namespace OfCourseIStillLoveYou
         public string SpeedString { get; private set; }
         public bool StreamingEnabled { get; private set; }
 
-        private Camera FindCamera(string cameraName)
+        private void SetCameraMode(Camera camera)
         {
-            foreach (var cam in Camera.allCameras)
-                if (cam.name == cameraName)
-                    return cam;
-
-            Debug.Log("Couldn't find " + cameraName);
-            return null;
+            var filter = camera.gameObject.AddComponent<MovieTimeFilterWrapper>();
+            if (filter != null)
+            {
+                filter.Initialize(camera.name + "Filter", MovieTimeFilterWrapper.eFilterType.Flight);
+                filter.SetMode(cameraMode);
+            }
         }
 
         private void SetCameras()
@@ -205,56 +231,58 @@ namespace OfCourseIStillLoveYou
             // === NEAR CAMERA (Main rendering camera) ===
             var cam1Obj = new GameObject("OCISLY_NearCamera");
             var partNearCamera = cam1Obj.AddComponent<Camera>();
-            var mainCamera = Camera.allCameras.FirstOrDefault(cam => cam.name == "Camera 00");
+            var mainCamera = Camera.allCameras.FirstOrDefault (_cam => _cam.name == "Camera 00");
 
             partNearCamera.CopyFrom(mainCamera);
-
-            // Position camera at the hull camera location
             partNearCamera.transform.parent = _hullcamera.cameraTransformName.Length <= 0
                 ? _hullcamera.part.transform
                 : _hullcamera.part.FindModelTransform(_hullcamera.cameraTransformName);
-            partNearCamera.transform.localRotation = Quaternion.LookRotation(_hullcamera.cameraForward, _hullcamera.cameraUp);
+            partNearCamera.transform.position = _hullcamera.transform.position;
+            partNearCamera.transform.rotation = _hullcamera.transform.rotation;
             partNearCamera.transform.localPosition = _hullcamera.cameraPosition;
-
-            // Configure render target
-            partNearCamera.fieldOfView = 50;
+            partNearCamera.transform.localRotation = Quaternion.LookRotation(_hullcamera.cameraForward, _hullcamera.cameraUp);
+            partNearCamera.nearClipPlane = 0.07f;
+            partNearCamera.fieldOfView = _hullcamera.cameraFoV;
             partNearCamera.targetTexture = TargetCamRenderTexture;
             partNearCamera.allowHDR = true;
             partNearCamera.allowMSAA = true;
-            partNearCamera.enabled = true;
-
-            _cameras[0] = partNearCamera;
+            partNearCamera.enabled = false;
+            partNearCamera.forceIntoRenderTexture = true;
+            _cameras.Add(partNearCamera);
             cam1Obj.AddComponent<CanvasHack>();
 
             // Apply rendering enhancements
+            TufxWrapper.AddPostProcessing(partNearCamera);
             DeferredWrapper.EnableDeferredRendering(partNearCamera);
             DeferredWrapper.SyncDebugMode(partNearCamera);
-            TufxWrapper.AddPostProcessing(partNearCamera);
             ParallaxWrapper.ApplyParallaxToCamera(partNearCamera, mainCamera);
 
             // === SCALED SPACE CAMERA (Distant objects, planets) ===
             var cam2Obj = new GameObject("OCISLY_ScaledCamera");
             var partScaledCamera = cam2Obj.AddComponent<Camera>();
-            var mainSkyCam = FindCamera("Camera ScaledSpace");
+            var mainSkyCam = Camera.allCameras.FirstOrDefault (_cam => _cam.name == "Camera ScaledSpace");
 
             partScaledCamera.CopyFrom(mainSkyCam);
 
-            // Follow the main scaled space camera
-            partScaledCamera.transform.parent = mainSkyCam.transform;
-            partScaledCamera.transform.localRotation = Quaternion.identity;
-            partScaledCamera.transform.localPosition = Vector3.zero;
+            partScaledCamera.transform.parent = mainSkyCam.transform.parent;
+            partScaledCamera.transform.position = _hullcamera.transform.position;
+            partScaledCamera.transform.rotation = _hullcamera.transform.rotation;
+            partScaledCamera.transform.localPosition = _hullcamera.cameraPosition;
+            partScaledCamera.transform.localRotation = Quaternion.LookRotation(_hullcamera.cameraForward, _hullcamera.cameraUp);
             partScaledCamera.transform.localScale = Vector3.one;
-
-            partScaledCamera.fieldOfView = 50;
+            partScaledCamera.nearClipPlane = 0.07f;
+            partScaledCamera.fieldOfView = _hullcamera.cameraFoV;
             partScaledCamera.targetTexture = TargetCamRenderTexture;
             partScaledCamera.allowHDR = true;
             partScaledCamera.allowMSAA = true;
-            partScaledCamera.enabled = true;
-            _cameras[1] = partScaledCamera;
+            partScaledCamera.enabled = false;
+            partScaledCamera.forceIntoRenderTexture = true;
+            _cameras.Add(partScaledCamera);
 
+            TufxWrapper.AddPostProcessing(partScaledCamera);
             DeferredWrapper.EnableDeferredRendering(partScaledCamera);
             DeferredWrapper.SyncDebugMode(partScaledCamera);
-            ParallaxWrapper.ApplyParallaxToCamera(partScaledCamera, mainSkyCam);
+            //ParallaxWrapper.ApplyParallaxToCamera(partScaledCamera, mainSkyCam);
 
             // Sync rotation with near camera
             var camRotator = cam2Obj.AddComponent<TgpCamRotator>();
@@ -264,97 +292,128 @@ namespace OfCourseIStillLoveYou
             // === GALAXY CAMERA (Skybox, stars) ===
             var galaxyCamObj = new GameObject("OCISLY_GalaxyCamera");
             var galaxyCam = galaxyCamObj.AddComponent<Camera>();
-            var mainGalaxyCam = FindCamera("GalaxyCamera");
+            var mainGalaxyCam = Camera.allCameras.FirstOrDefault (_cam => _cam.name == "GalaxyCamera");
 
             galaxyCam.CopyFrom(mainGalaxyCam);
 
-            galaxyCam.transform.parent = mainGalaxyCam.transform;
-            galaxyCam.transform.position = Vector3.zero;
-            galaxyCam.transform.localRotation = Quaternion.identity;
+            galaxyCam.transform.parent = mainGalaxyCam.transform.parent;
+            galaxyCam.transform.position = _hullcamera.transform.position;
+            galaxyCam.transform.rotation = _hullcamera.transform.rotation;
+            galaxyCam.transform.localPosition = _hullcamera.cameraPosition;
+            galaxyCam.transform.localRotation = Quaternion.LookRotation(_hullcamera.cameraForward, _hullcamera.cameraUp);
             galaxyCam.transform.localScale = Vector3.one;
-
-            galaxyCam.fieldOfView = 50;
+            galaxyCam.nearClipPlane = 0.07f;
+            galaxyCam.fieldOfView = _hullcamera.cameraFoV;
             galaxyCam.targetTexture = TargetCamRenderTexture;
             galaxyCam.allowHDR = true;
             galaxyCam.allowMSAA = true;
-            galaxyCam.enabled = true;
-            _cameras[2] = galaxyCam;
+            galaxyCam.enabled = false;
+            galaxyCam.forceIntoRenderTexture = true;
+            _cameras.Add(galaxyCam);
 
+            TufxWrapper.AddPostProcessing(galaxyCam);
             DeferredWrapper.EnableDeferredRendering(galaxyCam);
             DeferredWrapper.SyncDebugMode(galaxyCam);
-            ParallaxWrapper.ApplyParallaxToCamera(galaxyCam, mainGalaxyCam);
+            //ParallaxWrapper.ApplyParallaxToCamera(galaxyCam, mainGalaxyCam);
 
-            var camRotatorgalaxy = galaxyCamObj.AddComponent<TgpCamRotator>();
-            camRotatorgalaxy.NearCamera = partNearCamera;
+            var camRotatorGalaxy = galaxyCamObj.AddComponent<TgpCamRotator>();
+            camRotatorGalaxy.NearCamera = partNearCamera;
             galaxyCamObj.AddComponent<CanvasHack>();
 
             // === VISUAL EFFECTS (Apply to all cameras) ===
 
             // Scatterer (atmosphere, ocean)
-            ScattererWrapper.ApplyScattererToCamera(partNearCamera);
-            ScattererWrapper.ApplyScattererToCamera(partScaledCamera);
-            ScattererWrapper.ApplyScattererToCamera(galaxyCam);
+            // ScattererWrapper.ApplyScattererToCamera(partNearCamera);
+            // ScattererWrapper.ApplyScattererToCamera(partScaledCamera);
+            // ScattererWrapper.ApplyScattererToCamera(galaxyCam);
+
+            // Initialize Scatterer ocean rendering
+            // if (ScattererWrapper.IsScattererAvailable)
+                // ScattererOceanHelper.FindOceanNode(_hullcamera.vessel.mainBody.name);
+
+            // Scatterer SunFlare
+            try
+            {
+                sunflareManagerGO = new GameObject("HullCamera Scatterer sunflare manager" + _hullcamera.GetInstanceID());
+                sunflareManager = sunflareManagerGO.AddComponent<PerCameraSunflareManager>();
+                sunflareManager.Init(partScaledCamera, partNearCamera);
+            }
+            catch (Exception e)
+            {
+                Debug.Log("[OCISLY] Cannot create sunflare manager");
+            }
 
             // EVE (clouds, water effects)
             EVEWrapper.ApplyEVEToCamera(partNearCamera, mainCamera);
-            EVEWrapper.ApplyEVEToCamera(partScaledCamera, mainSkyCam);
-            EVEWrapper.ApplyEVEToCamera(galaxyCam, mainGalaxyCam);
+            // EVEWrapper.ApplyEVEToCamera(partScaledCamera, mainSkyCam);
+            // EVEWrapper.ApplyEVEToCamera(galaxyCam, mainGalaxyCam);
 
-            // Start with cameras disabled (they toggle on/off each frame)
-            foreach (var t in _cameras)
-                t.enabled = false;
+            cameraMode = (HullcamVDS.CameraFilter.eCameraMode)_hullcamera.cameraMode;
+            SetCameraMode(partNearCamera);
+            //SetCameraMode(partScaledCamera);
+            //SetCameraMode(galaxyCam);
 
-            _lastDebugModeState = DeferredWrapper.IsDebugModeEnabled();
-
-            // Initialize Scatterer ocean rendering
-            if (ScattererWrapper.IsScattererAvailable)
-            {
-                ScattererOceanHelper.FindOceanNode(_hullcamera.vessel.mainBody.name);
-            }
+            if (cameraMode == HullcamVDS.CameraFilter.eCameraMode.DockingCam)
+                AttachTargetDataToCamera(partNearCamera);
 
             // === SET CAMERA NAMES (MUST BE LAST - CopyFrom overwrites names) ===
             _cameras[0].name = "jrNear";
             _cameras[1].name = "jrScaled";
             _cameras[2].name = "jrGalaxy";
-
-            // === DIAGNOSTIC LOGGING ===
-            Debug.Log($"[OCISLY] Created near camera: {_cameras[0].name} (GameObject: {cam1Obj.name})");
-
-            Debug.Log("[OCISLY] === Main Camera Components ===");
-            foreach (var component in mainCamera.GetComponents<Component>())
-            {
-                Debug.Log($"[OCISLY] - {component.GetType().FullName}");
-            }
-
-            Debug.Log("[OCISLY] === Main Camera CommandBuffers ===");
-            foreach (CameraEvent evt in System.Enum.GetValues(typeof(CameraEvent)))
-            {
-                var buffers = mainCamera.GetCommandBuffers(evt);
-                if (buffers.Length > 0)
-                {
-                    foreach (var buffer in buffers)
-                    {
-                        Debug.Log($"[OCISLY] - {evt}: {buffer.name}");
-                    }
-                }
-            }
-
-            Debug.Log("[OCISLY] Final camera names:");
-            Debug.Log($"[OCISLY] - _cameras[0].name = {_cameras[0].name}");
-            Debug.Log($"[OCISLY] - _cameras[1].name = {_cameras[1].name}");
-            Debug.Log($"[OCISLY] - _cameras[2].name = {_cameras[2].name}");
         }
 
-        private void AddTufxPostProcessing()
+        private void AttachTargetDataToCamera(Camera camera)
         {
-            try
-            {
-                TufxWrapper.AddPostProcessing(_cameras[0]);
-            }
-            catch
-            {
-                // ignored
-            }
+            int uiLayer = LayerMask.NameToLayer("UI");
+            if (uiLayer == -1) uiLayer = 5;
+
+            camera.cullingMask |= 1 << uiLayer;
+
+            GameObject uiGo = new GameObject("OCISLY_HUD");
+            uiGo.layer = uiLayer;
+            uiGo.transform.SetParent(camera.transform, false);
+
+            _uiCanvas = uiGo.AddComponent<Canvas>();
+            _uiCanvas.renderMode = RenderMode.ScreenSpaceCamera;
+            _uiCanvas.worldCamera = camera;
+            _uiCanvas.planeDistance = 0.1f;
+
+            var scaler = uiGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
+
+            var tgtGO = new GameObject("TargetDataText");
+            tgtGO.layer = uiLayer;
+            tgtGO.transform.SetParent(uiGo.transform, false);
+
+            var outline = tgtGO.AddComponent<Outline>();
+            outline.effectColor = Color.black;
+            outline.effectDistance = new Vector2(2, -2);
+
+            _targetDataText = tgtGO.AddComponent<Text>();
+            _targetDataText.font = Font.CreateDynamicFontFromOSFont("Courier New", 16);
+            _targetDataText.fontSize = 2 * (int)Mathf.Clamp(16 * TargetWindowScale, 9, 16);
+            _targetDataText.alignment = TextAnchor.UpperLeft;
+            _targetDataText.color = Color.white;
+            _targetDataText.raycastTarget = false;
+
+            var rtTgt = _targetDataText.rectTransform;
+            rtTgt.anchorMin = new Vector2(0f, 1f);
+            rtTgt.anchorMax = new Vector2(0f, 1f);
+            rtTgt.pivot = new Vector2(0f, 1f);
+
+            float texW = Settings.Width;
+            float texH = Settings.Height;
+            float dispW = _adjCamImageWidthSize;
+            float dispH = _adjCamImageHeightSize;
+            float scale = Mathf.Max(dispW / texW, dispH / texH);
+            float visibleW = dispW / scale;
+            float visibleH = dispH / scale;
+            float offsetX = (texW - visibleW) / 2f;
+            float offsetY = (texH - visibleH) / 2f;
+
+            float padding = 5f;
+            rtTgt.anchoredPosition = new Vector2(offsetX + padding, -offsetY - padding);
+            rtTgt.sizeDelta = new Vector2(visibleW - 2f * padding, visibleH - 2f * padding);
         }
 
         public void CreateGui()
@@ -370,12 +429,6 @@ namespace OfCourseIStillLoveYou
             Name = _hullcamera.vessel.GetDisplayName() + "." + _hullcamera.cameraName;
 
             _windowRect = GUI.Window(Id, _windowRect, WindowTargetCam, Name);
-
-            if (Time.timeSinceLevelLoad > 2f && !_diagnosticRun)
-            {
-                _diagnosticRun = true;
-                LogDetailedCameraStatus();
-            }
         }
 
         public void CheckIfResizing()
@@ -394,13 +447,12 @@ namespace OfCourseIStillLoveYou
             _adjCamImageWidthSize = _initialCamImageWidthSize * TargetWindowScale;
             _adjCamImageHeightSize = _initialCamImageHeightSize * TargetWindowScale;
 
-            GUI.DragWindow(new Rect(0, 0, _windowHeight - 18, 30));
-            if (GUI.Button(new Rect(_windowWidth - 18, 2, 20, 16), "X", GUI.skin.button))
+            if (GUI.Button(new Rect(_windowWidth - 18, 2, 20, 16), " ", GUI.skin.button))
             {
                 Disable();
-
                 return;
             }
+            GUI.DragWindow(new Rect(0, 0, _windowHeight - 18, 30));
 
             var imageRect = DrawTexture();
 
@@ -408,7 +460,6 @@ namespace OfCourseIStillLoveYou
             DrawSideControlButtons(imageRect);
 
             DrawTelemetry(imageRect);
-
 
             //resizing
             var resizeRect =
@@ -440,10 +491,13 @@ namespace OfCourseIStillLoveYou
 
         private Rect DrawTexture()
         {
+            // update FOV
+            foreach (var camera in _cameras)
+                camera.fieldOfView = _hullcamera.cameraFoV;
+
             var imageRect = new Rect(2, 20, _adjCamImageWidthSize, _adjCamImageHeightSize);
 
-
-            GUI.DrawTexture(imageRect, TargetCamRenderTexture, ScaleMode.StretchToFill, false);
+            GUI.DrawTexture(imageRect, TargetCamRenderTexture, ScaleMode.ScaleAndCrop , false);
             return imageRect;
         }
 
@@ -453,7 +507,7 @@ namespace OfCourseIStillLoveYou
 
             var dataStyle = new GUIStyle(TelemetryGuiStyle)
             {
-                fontSize = (int)Mathf.Clamp(16 * TargetWindowScale, 9, 17),
+                fontSize = (int) Mathf.Clamp(16 * TargetWindowScale, 9, 16),
             };
 
             var targetRangeRect = new Rect(imageRect.x,
@@ -464,7 +518,7 @@ namespace OfCourseIStillLoveYou
             GUI.Label(targetRangeRect, String.Concat(AltitudeString, Environment.NewLine, SpeedString), dataStyle);
         }
 
-        public bool MinimalUi { get; set; }
+        public bool MinimalUi { get; set; } = true;
 
         private void DrawSideControlButtons(Rect imageRect)
         {
@@ -485,11 +539,53 @@ namespace OfCourseIStillLoveYou
 
         public void CalculateSpeedAltitude()
         {
-            var altitudeInKm = (float)Math.Round(_hullcamera.vessel.altitude / 1000f, 1);
-            var speed = (int)Math.Round(_hullcamera.vessel.speed * 3.6f, 0);
+            var altitudeInKm = (float) Math.Round(_hullcamera.vessel.altitude / 1000f, 1);
+            var speed = (int) Math.Round(_hullcamera.vessel.speed * 3.6f, 0);
 
             AltitudeString = string.Concat(Altitude, altitudeInKm.ToString("0.0"), Km);
             SpeedString = string.Concat(Speed, speed, Kmh);
+        }
+
+        public void UpdateTargetText()
+        {
+            HasTargetData = (FlightGlobals.ActiveVessel.targetObject is Vessel || FlightGlobals.ActiveVessel.targetObject is ModuleDockingNode);
+            if (_targetDataText != null)
+            {
+                if (HasTargetData)
+                {
+                    targetName = FlightGlobals.fetch.VesselTarget.GetName();
+                    targetVelX = Math.Round(Vector3d.Dot(FlightGlobals.ship_tgtVelocity, FlightGlobals.ActiveVessel.ReferenceTransform.right), 3);
+                    targetVelY = Math.Round(Vector3d.Dot(FlightGlobals.ship_tgtVelocity, FlightGlobals.ActiveVessel.ReferenceTransform.forward), 3);
+                    targetVelZ = Math.Round(Vector3d.Dot(FlightGlobals.ship_tgtVelocity, FlightGlobals.ActiveVessel.ReferenceTransform.up), 3);
+
+                    Vessel targetVessel;
+                    if (FlightGlobals.ActiveVessel.targetObject is Vessel)
+                        targetVessel = (Vessel)FlightGlobals.ActiveVessel.targetObject;
+                    else
+                        targetVessel = ((ModuleDockingNode)FlightGlobals.ActiveVessel.targetObject).vessel;
+                    Orbit activeOrbit = FlightGlobals.ActiveVessel.orbit;
+                    Orbit targetOrbit = targetVessel.orbit;
+
+                    Vector3d activeVesselPos = FlightGlobals.ActiveVessel.orbit.getRelativePositionAtUT(Planetarium.GetUniversalTime()) + FlightGlobals.ActiveVessel.orbit.referenceBody.position;
+                    Vector3d targetVesselPos = targetVessel.orbit.getRelativePositionAtUT(Planetarium.GetUniversalTime()) + targetVessel.orbit.referenceBody.position;
+
+                    targetDistance = (activeVesselPos - targetVesselPos).magnitude;
+
+                    _targetDataText.text =
+                        $"Target: {targetName}"                                    + "\n" +
+                        $"DST:    {Math.Round(targetDistance, 2)} m"               + "\n" +
+                        $"TCA:    "                                                + "\n" +
+                        $""                                                        + "\n" +
+                        $"Relative Speed"                                          + "\n" +
+                        $"X: {(targetVelX > 0 ? " " : "-")}{Math.Abs(targetVelX)}" + "\n" +
+                        $"Y: {(targetVelY > 0 ? " " : "-")}{Math.Abs(targetVelY)}" + "\n" +
+                        $"Z: {(targetVelZ > 0 ? " " : "-")}{Math.Abs(targetVelZ)}" + "\n" ;
+                }
+                else
+                {
+                    _targetDataText.text = "";
+                }
+            }
         }
 
         private void UpdateTargetScale(float diff)
@@ -503,7 +599,6 @@ namespace OfCourseIStillLoveYou
                 TargetWindowScaleMax);
         }
 
-
         private void ResizeTargetWindow()
         {
             if (MinimalUi)
@@ -515,7 +610,9 @@ namespace OfCourseIStillLoveYou
                 _windowWidth = _initialCamImageWidthSize * TargetWindowScale + 3 * ButtonHeight + 16 + 2 * Gap;
             }
             _windowHeight = _initialCamImageHeightSize * TargetWindowScale + 23;
-            _windowRect = new Rect(_windowRect.x, _windowRect.y, _windowWidth, _windowHeight);
+            // _windowRect = new Rect(_windowRect.x, _windowRect.y, _windowWidth, _windowHeight);
+            _windowRect.width = _windowWidth;
+            _windowRect.height = _windowHeight;
         }
 
         internal static void RepositionWindow(ref Rect windowPosition)
@@ -534,101 +631,91 @@ namespace OfCourseIStillLoveYou
         {
             Enabled = false;
             StreamingEnabled = false;
-            this.TargetCamRenderTexture.Release();
 
-            foreach (var camera in _cameras)
+            _jpgTexture = null;
+
+            if (_uiCanvas != null)
             {
-                if (camera != null)
+                UnityEngine.Object.Destroy(_uiCanvas.gameObject);
+                _uiCanvas = null;
+                _targetDataText = null;
+            }
+
+            if (TargetCamRenderTexture != null)
+            {
+                TargetCamRenderTexture.Release();
+                UnityEngine.Object.Destroy(TargetCamRenderTexture);
+                TargetCamRenderTexture = null;
+            }
+
+            if (_texture2D != null)
+            {
+                UnityEngine.Object.Destroy(_texture2D);
+            }
+
+            if (sunflareManager != null)
+            {
+                UnityEngine.Object.Destroy(sunflareManager);
+                sunflareManager = null;
+            }
+
+            if (sunflareManagerGO != null)
+            {
+                UnityEngine.Object.Destroy(sunflareManagerGO);
+                sunflareManagerGO = null;
+            }
+
+            for (int i = _cameras.Count - 1; i >= 0; --i)
+            {
+                if (_cameras[i] != null)
                 {
                     // Disable Deferred Rendering
-                    DeferredWrapper.ForceRemoveDebugMode(camera);
-                    DeferredWrapper.DisableDeferredRendering(camera);
+                    DeferredWrapper.ForceRemoveDebugMode(_cameras[i]);
+                    DeferredWrapper.DisableDeferredRendering(_cameras[i]);
 
                     // Disable Parallax and EVE wrappers
-                    ParallaxWrapper.RemoveParallaxFromCamera(camera);
-                    EVEWrapper.RemoveEVEFromCamera(camera);
+                    ParallaxWrapper.RemoveParallaxFromCamera(_cameras[i]);
+                    EVEWrapper.RemoveEVEFromCamera(_cameras[i]);
 
                     // Disable Scatterer wrapper
-                    ScattererWrapper.RemoveScattererFromCamera(camera);
+                    // ScattererWrapper.RemoveScattererFromCamera(_cameras[i]);
 
                     // Disable Firefly wrapper and cleanup tracking
-                    FireflyWrapper.RemoveFireflyFromCamera(camera);
-                    FireflyWrapper.CleanupCamera(camera);
+                    FireflyWrapper.RemoveFireflyFromCamera(_cameras[i]);
+                    FireflyWrapper.CleanupCamera(_cameras[i]);
 
-                    camera.enabled = false;
+                    // Disable Firefly wrapper and cleanup tracking
+                    FireflyWrapper.RemoveFireflyFromCamera(_cameras[i]);
+                    FireflyWrapper.CleanupCamera(_cameras[i]);
+
+                    _cameras[i].enabled = false;
+                    UnityEngine.Object.Destroy(_cameras[i].gameObject);
                 }
             }
-        }
 
-        private void LogDetailedCameraStatus()
-        {
-            if (_cameras == null) return;
-
-            Debug.Log("[OCISLY] ===== Detailed Camera Status Check =====");
-
-            foreach (var cam in _cameras)
-            {
-                if (cam == null) continue;
-
-                Debug.Log($"[OCISLY] === {cam.name} ===");
-                Debug.Log($"[OCISLY] Enabled: {cam.enabled}, Layer 9: {(cam.cullingMask & (1 << 9)) != 0}, Layer 15: {(cam.cullingMask & (1 << 15)) != 0}");
-
-                Debug.Log(ScattererWrapper.GetDiagnosticInfo(cam));
-                ScattererWrapper.EnsureOceanRenderingSetup(cam);
-            }
-        }
-
-        private void LogCommandBufferStatus()
-        {
-            foreach (var cam in _cameras)
-            {
-                if (cam == null) continue;
-
-                Debug.Log($"[OCISLY] ===== {cam.name} Active CommandBuffers =====");
-
-                var allEvents = (CameraEvent[])System.Enum.GetValues(typeof(CameraEvent));
-                int totalBuffers = 0;
-
-                foreach (var evt in allEvents)
-                {
-                    var buffers = cam.GetCommandBuffers(evt);
-                    if (buffers != null && buffers.Length > 0)
-                    {
-                        foreach (var buffer in buffers)
-                        {
-                            totalBuffers++;
-                            Debug.Log($"[OCISLY]   {evt}: {buffer.name}");
-                        }
-                    }
-                }
-
-                if (totalBuffers == 0)
-                {
-                    Debug.Log($"[OCISLY]   NO COMMAND BUFFERS on {cam.name}!");
-                }
-                else
-                {
-                    Debug.Log($"[OCISLY]   Total: {totalBuffers} command buffers");
-                }
-            }
+            _cameras.Clear();
         }
 
         public void UpdateFireflyEffects()
         {
-            foreach (var cam in _cameras)
-            {
-                if (cam != null)
-                {
-                    FireflyWrapper.UpdateFireflyForCamera(cam, _hullcamera.vessel);
-                }
-            }
+            // foreach (var cam in _cameras)
+            // {
+            //     if (cam != null)
+            //     {
+            //         FireflyWrapper.UpdateFireflyForCamera(cam, _hullcamera.vessel);
+            //     }
+            // }
+
+            FireflyWrapper.UpdateFireflyForCamera(_cameras[0], _hullcamera.vessel);
         }
 
         public void RenderParallaxScatters()
         {
             // Parallax requires explicit render calls to display scatter objects (grass, rocks, trees)
-            // This is called every other frame (when OddFrames is true) from Core.Refresh()
-            ParallaxWrapper.RenderParallaxToCustomCameras(_cameras);
+            // This is called every frame from Core.Refresh()
+            // ParallaxWrapper.RenderParallaxToCustomCameras(_cameras);
+
+            ParallaxWrapper.RenderParallaxToCustomCameras(new Camera[] { _cameras[0] });
         }
     }
 }

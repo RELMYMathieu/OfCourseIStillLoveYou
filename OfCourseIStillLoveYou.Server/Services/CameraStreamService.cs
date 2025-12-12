@@ -89,7 +89,6 @@ namespace OfCourseIStillLoveYou.Server.Services
                     Speed = request.Speed, Texture = request.Texture.ToByteArray()
                 };
 
-                
                 _ = CameraTextures.AddOrUpdate(request.CameraId, newCameraData, (_, _) => newCameraData);
 
                 if (SyncroReading.ContainsKey(request.CameraId))
@@ -100,7 +99,6 @@ namespace OfCourseIStillLoveYou.Server.Services
                 {
                     _ = SyncroReading.TryAdd(request.CameraId, new ManualResetEventSlim(true));
                 }
-                
 
                 var currentTime = DateTime.Now;
                 _ = CameraLastOperation.AddOrUpdate(request.CameraId, currentTime, (_, _) => currentTime);
